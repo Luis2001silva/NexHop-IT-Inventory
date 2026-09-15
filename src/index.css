@@ -1,0 +1,645 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* =========================
+       DARK THEME
+       ========================= */
+    --page-bg: #080D1F;
+    --surface: #0D1730;
+    --surface-2: #0A1328;
+    --surface-3: #101B36;
+
+    --text-main: #FFFFFF;
+    --text-muted: rgba(255,255,255,.55);
+    --border-subtle: rgba(255,255,255,.06);
+    --accent: #3B82F6;
+
+    --background: 224 59% 8%;
+    --foreground: 0 0% 100%;
+    --card: 221 56% 12%;
+    --card-foreground: 0 0% 100%;
+    --popover: 221 44% 12%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 221 48% 18%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 221 48% 18%;
+    --muted-foreground: 215 20% 65%;
+    --accent-foreground: 217 91% 70%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 221 30% 20%;
+    --input: 221 30% 20%;
+    --ring: 217 91% 60%;
+    --radius: .65rem;
+  }
+
+  /* =========================
+     LIGHT THEME
+     ========================= */
+  html.light {
+    --page-bg: #E5E7EB;
+    --surface: #F8FAFC;
+    --surface-2: #EEF1F4;
+    --surface-3: #E8EEF7;
+
+    --text-main: #111827;
+    --text-muted: #475569;
+    --border-subtle: #D1D5DB;
+    --accent: #2563EB;
+
+    --background: 220 14% 91%;
+    --foreground: 222 47% 11%;
+    --card: 210 40% 98%;
+    --card-foreground: 222 47% 11%;
+    --popover: 210 40% 98%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 217 91% 45%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 13% 88%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 220 14% 94%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 214 70% 94%;
+    --accent-foreground: 217 91% 45%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 16% 83%;
+    --input: 214 16% 83%;
+    --ring: 217 91% 60%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    margin: 0;
+    min-width: 320px;
+  }
+
+  #root {
+    min-height: 100vh;
+  }
+}
+
+
+/* =========================================================
+   LIGHT MODE
+   ========================================================= */
+
+html.light body {
+  background-color: #E5E7EB !important;
+  color: #111827 !important;
+}
+
+
+/* =========================================================
+   FUNDOS PRINCIPAIS
+   ========================================================= */
+
+html.light .bg-\[\#080D1F\] {
+  background-color: #E5E7EB !important;
+}
+
+html.light .bg-\[\#0D1730\] {
+  background-color: #F8FAFC !important;
+}
+
+html.light .bg-\[\#0A1328\] {
+  background-color: #EEF1F4 !important;
+}
+
+html.light .bg-\[\#101B36\] {
+  background-color: #E8EEF7 !important;
+}
+
+html.light .bg-\[\#0B1120\] {
+  background-color: #F8FAFC !important;
+}
+
+html.light .bg-\[\#11182B\] {
+  background-color: #F8FAFC !important;
+}
+
+
+/* =========================================================
+   SIDEBAR
+   ========================================================= */
+
+html.light aside {
+  background-color: #F1F3F5 !important;
+  border-right-color: #D1D5DB !important;
+}
+
+html.light aside a,
+html.light aside button {
+  color: #334155 !important;
+}
+
+html.light aside a:hover,
+html.light aside button:hover {
+  color: #111827 !important;
+}
+
+html.light aside svg {
+  color: #475569 !important;
+}
+
+html.light aside a.bg-blue-500,
+html.light aside a.bg-blue-600 {
+  background-color: #DBEAFE !important;
+  color: #2563EB !important;
+}
+
+html.light aside a.bg-blue-500 svg,
+html.light aside a.bg-blue-600 svg {
+  color: #2563EB !important;
+}
+
+
+/* =========================================================
+   TEXTO
+   ========================================================= */
+
+html.light .text-white {
+  color: #111827 !important;
+}
+
+html.light .text-white\/70 {
+  color: #475569 !important;
+}
+
+html.light .text-white\/60 {
+  color: #475569 !important;
+}
+
+html.light .text-white\/55 {
+  color: #64748B !important;
+}
+
+html.light .text-white\/50 {
+  color: #64748B !important;
+}
+
+html.light .text-white\/40 {
+  color: #64748B !important;
+}
+
+html.light .text-white\/35 {
+  color: #64748B !important;
+}
+
+html.light .text-white\/30 {
+  color: #94A3B8 !important;
+}
+
+html.light .text-white\/20 {
+  color: #94A3B8 !important;
+}
+
+
+/* Slate */
+html.light .text-slate-200 {
+  color: #1E293B !important;
+}
+
+html.light .text-slate-300 {
+  color: #334155 !important;
+}
+
+html.light .text-slate-400 {
+  color: #475569 !important;
+}
+
+html.light .text-slate-500 {
+  color: #64748B !important;
+}
+
+html.light .text-slate-600 {
+  color: #64748B !important;
+}
+
+html.light .text-slate-700 {
+  color: #64748B !important;
+}
+
+
+/* =========================================================
+   CORES
+   ========================================================= */
+
+html.light .text-blue-300 {
+  color: #2563EB !important;
+}
+
+html.light .text-blue-400 {
+  color: #2563EB !important;
+}
+
+html.light .text-blue-500 {
+  color: #2563EB !important;
+}
+
+html.light .text-blue-600 {
+  color: #2563EB !important;
+}
+
+html.light .text-emerald-400,
+html.light .text-green-400 {
+  color: #059669 !important;
+}
+
+html.light .text-amber-400,
+html.light .text-yellow-400 {
+  color: #D97706 !important;
+}
+
+html.light .text-red-400,
+html.light .text-red-500 {
+  color: #DC2626 !important;
+}
+
+
+/* =========================================================
+   BORDAS
+   ========================================================= */
+
+html.light .border {
+  border-color: #D1D5DB !important;
+}
+
+html.light [class*="border-white"] {
+  border-color: #D1D5DB !important;
+}
+
+html.light .border-white\/\[0\.06\] {
+  border-color: #D1D5DB !important;
+}
+
+html.light .border-white\/\[0\.07\] {
+  border-color: #D1D5DB !important;
+}
+
+html.light .border-white\/\[0\.08\] {
+  border-color: #CBD5E1 !important;
+}
+
+html.light .border-white\/\[0\.05\] {
+  border-color: #D1D5DB !important;
+}
+
+
+/* =========================================================
+   FUNDOS TRANSPARENTES
+   ========================================================= */
+
+html.light .bg-white\/\[0\.025\] {
+  background-color: #EEF1F4 !important;
+}
+
+html.light .bg-white\/\[0\.03\] {
+  background-color: #EEF1F4 !important;
+}
+
+html.light .bg-white\/\[0\.04\] {
+  background-color: #E5E7EB !important;
+}
+
+html.light .bg-white\/\[0\.05\] {
+  background-color: #E5E7EB !important;
+}
+
+html.light .bg-white\/5 {
+  background-color: #E5E7EB !important;
+}
+
+
+/* =========================================================
+   HOVER
+   ========================================================= */
+
+html.light .hover\:bg-white\/\[0\.04\]:hover {
+  background-color: #E8EEF7 !important;
+}
+
+html.light .hover\:bg-white\/\[0\.05\]:hover {
+  background-color: #E8EEF7 !important;
+}
+
+html.light .hover\:bg-white\/5:hover {
+  background-color: #E8EEF7 !important;
+}
+
+
+/* =========================================================
+   TABELAS
+   ========================================================= */
+
+html.light table {
+  background-color: #F8FAFC !important;
+  border-color: #D1D5DB !important;
+}
+
+html.light table thead {
+  background-color: #E2E5E9 !important;
+}
+
+html.light table th {
+  background-color: #E2E5E9 !important;
+  color: #111827 !important;
+  border-color: #D1D5DB !important;
+}
+
+html.light table td {
+  background-color: #F8FAFC !important;
+  color: #111827 !important;
+  border-color: #D1D5DB !important;
+}
+
+html.light table .text-white {
+  color: #111827 !important;
+}
+
+html.light table .text-white\/70,
+html.light table .text-white\/60 {
+  color: #475569 !important;
+}
+
+html.light table .text-white\/55,
+html.light table .text-white\/50,
+html.light table .text-white\/40 {
+  color: #64748B !important;
+}
+
+html.light table tbody tr:hover,
+html.light table tbody tr:hover td {
+  background-color: #E8EEF7 !important;
+}
+
+
+/* =========================================================
+   CALENDÁRIO — RESERVATIONS
+   ========================================================= */
+
+/* Container dos dias */
+html.light .grid.grid-cols-7 > div {
+  background-color: #F8FAFC !important;
+}
+
+/* Cabeçalho de cada dia */
+html.light .grid.grid-cols-7 > div > div:first-child {
+  background-color: #EEF1F4 !important;
+  border-color: #D1D5DB !important;
+}
+
+/* Dia atual */
+html.light .grid.grid-cols-7 > div > div:first-child.bg-blue-500\/5 {
+  background-color: #DBEAFE !important;
+}
+
+/* Nome do dia */
+html.light .grid.grid-cols-7 > div > div:first-child .text-slate-600 {
+  color: #64748B !important;
+}
+
+/* Número do dia */
+html.light .grid.grid-cols-7 > div > div:first-child .text-white {
+  color: #111827 !important;
+}
+
+/* Número do dia atual */
+html.light .grid.grid-cols-7 > div > div:first-child .text-blue-300 {
+  color: #2563EB !important;
+}
+
+/* Sem reservas */
+html.light .grid.grid-cols-7 .text-slate-700 {
+  color: #64748B !important;
+}
+
+/* Reserva individual */
+html.light .grid.grid-cols-7 .bg-\[\#0D1730\] {
+  background-color: #F1F3F5 !important;
+  border-color: #D1D5DB !important;
+}
+
+
+/* =========================================================
+   BOTÕES DO CALENDÁRIO
+   ========================================================= */
+
+html.light .bg-\[\#0A1328\] {
+  background-color: #EEF1F4 !important;
+}
+
+html.light button.bg-\[\#0A1328\] {
+  color: #475569 !important;
+}
+
+html.light button.bg-\[\#0A1328\]:hover {
+  background-color: #E8EEF7 !important;
+  color: #2563EB !important;
+}
+
+
+/* =========================================================
+   INICIAIS / AVATARES
+   ========================================================= */
+
+html.light .bg-blue-500\/10 {
+  background-color: #E2E5E9 !important;
+}
+
+html.light .bg-blue-500\/10.text-blue-400 {
+  color: #475569 !important;
+}
+
+html.light .bg-blue-500\/5 {
+  background-color: #EEF3FA !important;
+}
+
+
+/* =========================================================
+   INPUTS
+   ========================================================= */
+
+html.light input,
+html.light textarea,
+html.light select {
+  background-color: #F8FAFC !important;
+  border-color: #D1D5DB !important;
+  color: #111827 !important;
+}
+
+html.light input::placeholder,
+html.light textarea::placeholder {
+  color: #64748B !important;
+}
+
+
+/* =========================================================
+   BADGES
+   ========================================================= */
+
+html.light .bg-emerald-500\/10 {
+  background-color: #D1FAE5 !important;
+}
+
+html.light .bg-green-500\/10 {
+  background-color: #D1FAE5 !important;
+}
+
+html.light .bg-amber-500\/10 {
+  background-color: #FEF3C7 !important;
+}
+
+html.light .bg-red-500\/10 {
+  background-color: #FEE2E2 !important;
+}
+
+html.light .bg-blue-500\/10 {
+  background-color: #DBEAFE !important;
+}
+
+
+/* =========================================================
+   BOTÕES COLORIDOS
+   ========================================================= */
+
+html.light .bg-blue-500.text-white,
+html.light .bg-blue-600.text-white {
+  color: #FFFFFF !important;
+}
+
+html.light .bg-red-500.text-white {
+  color: #FFFFFF !important;
+}
+
+html.light .bg-green-500.text-white,
+html.light .bg-emerald-500.text-white {
+  color: #FFFFFF !important;
+}
+
+
+/* =========================================================
+   SEPARADORES
+   ========================================================= */
+
+html.light hr {
+  border-color: #D1D5DB !important;
+}
+
+/* =========================================================
+   AVATARES / CÍRCULOS DE INICIAIS
+   ========================================================= */
+
+html.light .bg-blue-500\/10 {
+  background-color: #E2E5E9 !important;
+}
+
+html.light .bg-blue-500\/10.text-blue-400 {
+  background-color: #E2E5E9 !important;
+  color: #475569 !important;
+}
+
+
+/* =========================================================
+   TEXTOS BRANCOS → PRETO/CINZA NO LIGHT
+   ========================================================= */
+
+html.light .text-white {
+  color: #111827 !important;
+}
+
+html.light .text-white\/90 {
+  color: #111827 !important;
+}
+
+html.light .text-white\/80 {
+  color: #1F2937 !important;
+}
+
+html.light .text-white\/75 {
+  color: #334155 !important;
+}
+
+html.light .text-white\/70 {
+  color: #475569 !important;
+}
+
+html.light .text-white\/60 {
+  color: #475569 !important;
+}
+
+html.light .text-white\/55 {
+  color: #64748B !important;
+}
+
+html.light .text-white\/50 {
+  color: #64748B !important;
+}
+
+html.light .text-white\/40 {
+  color: #64748B !important;
+}
+
+html.light .text-white\/35 {
+  color: #64748B !important;
+}
+
+html.light .text-white\/30 {
+  color: #94A3B8 !important;
+}
+
+/* =========================================================
+   SCROLLBARS
+   ========================================================= */
+
+.nexa-sidebar-scroll,
+.nexa-main-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.nexa-sidebar-scroll::-webkit-scrollbar,
+.nexa-main-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-thin {
+  scrollbar-width: thin;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+
+/* =========================================================
+   SERVER PROGRESS
+   ========================================================= */
+
+@keyframes serverProgress {
+  0% {
+    transform: translateX(-120%);
+  }
+
+  50% {
+    transform: translateX(120%);
+  }
+
+  100% {
+    transform: translateX(350%);
+  }
+}
