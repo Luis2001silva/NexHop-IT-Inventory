@@ -55,7 +55,7 @@ interface NavSection {
 
 /* =========================================================
    LOADING CIRCLE
-   Mostra que uma determinada área ainda está em
+   Indicador utilizado nas páginas que ainda estão em
    desenvolvimento.
    ========================================================= */
 
@@ -100,18 +100,7 @@ export const Sidebar = ({
   const isLight = theme === "light";
 
   /* =======================================================
-     ROLE PERMISSIONS
-
-     O role vem diretamente de:
-
-     profiles.role
-
-     através do hook useUserRole().
-
-     Possíveis valores:
-     - admin
-     - viewer
-     - user
+     ROLE
      ======================================================= */
 
   const isAdmin = role === "admin";
@@ -119,16 +108,27 @@ export const Sidebar = ({
   const isUser = role === "user";
 
   /* =======================================================
+     PERMISSIONS
+
+     Admin:
+     - acesso completo ao painel IT
+
+     Viewer:
+     - acesso de consulta ao painel IT
+     - Users, Hierarchy e Settings também disponíveis
+     - Logs continuam exclusivos do Admin
+
+     User:
+     - será tratado posteriormente através do My Portal
+     ======================================================= */
+
+  const canViewIT = isAdmin || isViewer;
+  const canViewUsers = isAdmin || isViewer;
+  const canViewHierarchy = isAdmin || isViewer;
+  const canViewSettings = isAdmin || isViewer;
+
+  /* =======================================================
      NAVIGATION
-
-     O menu é construído de acordo com o role.
-
-     Neste momento:
-     - Admin vê o menu completo.
-     - Viewer vê o painel IT sem Users.
-     - User ainda não tem o My Portal implementado.
-
-     A parte de User será tratada mais à frente.
      ======================================================= */
 
   const sections: NavSection[] = [
@@ -155,18 +155,14 @@ export const Sidebar = ({
 
         /* -------------------------------------------------
            USERS
-
-           Apenas Administradores podem gerir utilizadores.
+           Admin + Viewer
            ------------------------------------------------- */
 
-        ...(isAdmin
+        ...(canViewUsers
           ? [
               {
                 path: "/users",
-                label:
-                  language === "pt"
-                    ? "Utilizadores"
-                    : "Users",
+                label: language === "pt" ? "Utilizadores" : "Users",
                 icon: <Users size={18} />,
               },
             ]
@@ -176,6 +172,7 @@ export const Sidebar = ({
 
     /* =====================================================
        GESTÃO
+       Admin + Viewer
        ===================================================== */
 
     {
@@ -191,80 +188,78 @@ export const Sidebar = ({
 
         {
           path: "/warranties",
-          label:
-            language === "pt"
-              ? "Garantias"
-              : "Warranties",
+          label: language === "pt" ? "Garantias" : "Warranties",
           icon: <ShieldCheck size={18} />,
         },
 
         {
           path: "/reservations",
-          label:
-            language === "pt"
-              ? "Reservas"
-              : "Reservations",
+          label: language === "pt" ? "Reservas" : "Reservations",
           icon: <CalendarDays size={18} />,
         },
 
         {
           path: "/documents",
-          label:
-            language === "pt"
-              ? "Documentos"
-              : "Documents",
+          label: language === "pt" ? "Documentos" : "Documents",
           icon: <FolderOpen size={18} />,
           updating: true,
         },
 
-        {
-          path: "/hierarchy",
-          label:
-            language === "pt"
-              ? "Hierarquia"
-              : "Hierarchy",
-          icon: <Network size={18} />,
-        },
+        /* -------------------------------------------------
+           HIERARCHY
+           Admin + Viewer
+           ------------------------------------------------- */
+
+        ...(canViewHierarchy
+          ? [
+              {
+                path: "/hierarchy",
+                label: language === "pt" ? "Hierarquia" : "Hierarchy",
+                icon: <Network size={18} />,
+              },
+            ]
+          : []),
       ],
     },
 
     /* =====================================================
        MONITORIZAÇÃO
+       Admin + Viewer
        ===================================================== */
 
     {
-      title:
-        language === "pt"
-          ? "MONITORIZAÇÃO"
-          : "MONITORING",
+      title: language === "pt" ? "MONITORIZAÇÃO" : "MONITORING",
 
       items: [
         {
           path: "/alerts",
-          label:
-            language === "pt"
-              ? "Alertas"
-              : "Alerts",
+          label: language === "pt" ? "Alertas" : "Alerts",
           icon: <TriangleAlert size={18} />,
           updating: true,
         },
 
         {
           path: "/reports",
-          label:
-            language === "pt"
-              ? "Relatórios"
-              : "Reports",
+          label: language === "pt" ? "Relatórios" : "Reports",
           icon: <ChartNoAxesCombined size={18} />,
           updating: true,
         },
 
-        {
-          path: "/logs",
-          label: "Logs",
-          icon: <ScrollText size={18} />,
-          updating: true,
-        },
+        /* -------------------------------------------------
+           LOGS
+           Apenas Admin
+           ------------------------------------------------- */
+
+        ...(isAdmin
+          ? [
+              {
+                path: "/logs",
+                label: "Logs",
+                icon: <ScrollText size={18} />,
+                updating: true,
+              },
+            ]
+          : []),
       ],
     },
 
@@ -273,36 +268,43 @@ export const Sidebar = ({
        ===================================================== */
 
     {
-      title:
-        language === "pt"
-          ? "SISTEMA"
-          : "SYSTEM",
+      title: language === "pt" ? "SISTEMA" : "SYSTEM",
 
       items: [
-        {
-          path: "/settings",
-          label:
-            language === "pt"
-              ? "Definições"
-              : "Settings",
-          icon: <Settings size={18} />,
-        },
+        /* -------------------------------------------------
+           SETTINGS
+           Admin + Viewer
+           ------------------------------------------------- */
+
+        ...(canViewSettings
+          ? [
+              {
+                path: "/settings",
+                label: language === "pt" ? "Definições" : "Settings",
+                icon: <Settings size={18} />,
+              },
+            ]
+          : []),
+
+        /* -------------------------------------------------
+           PROFILE
+           Admin + Viewer
+           ------------------------------------------------- */
 
         {
           path: "/profile",
-          label:
-            language === "pt"
-              ? "Perfil"
-              : "Profile",
+          label: language === "pt" ? "Perfil" : "Profile",
           icon: <UserCircle size={18} />,
         },
 
+        /* -------------------------------------------------
+           SUPPORT
+           Admin + Viewer
+           ------------------------------------------------- */
+
         {
           path: "/support",
-          label:
-            language === "pt"
-              ? "Suporte"
-              : "Support",
+          label: language === "pt" ? "Suporte" : "Support",
           icon: <CircleHelp size={18} />,
         },
       ],
@@ -311,8 +313,6 @@ export const Sidebar = ({
 
   /* =========================================================
      ACTIVE ROUTE
-
-     Verifica qual é a página atualmente aberta.
      ========================================================= */
 
   const isActive = (path: string) => {
@@ -325,13 +325,8 @@ export const Sidebar = ({
 
   /* =========================================================
      ROLE LOADING
-
-     Enquanto o role ainda está a ser carregado, não
-     construímos o menu de permissões.
-
-     Isto evita o problema:
-
-     Admin -> aparece Viewer -> depois muda para Admin
+     Evita mostrar temporariamente o menu errado enquanto
+     o role está a ser carregado.
      ========================================================= */
 
   if (roleLoading) {
@@ -348,12 +343,8 @@ export const Sidebar = ({
         <div
           className={cn(
             "h-[72px] flex items-center border-b",
-            isLight
-              ? "border-slate-200"
-              : "border-white/[0.06]",
-            collapsed
-              ? "justify-center px-2"
-              : "justify-between px-5",
+            isLight ? "border-slate-200" : "border-white/[0.06]",
+            collapsed ? "justify-center px-2" : "justify-between px-5",
           )}
         />
 
@@ -371,7 +362,7 @@ export const Sidebar = ({
   return (
     <>
       {/* ===================================================
-          SIDEBAR SPINNER ANIMATION
+          SPINNER ANIMATION
           =================================================== */}
 
       <style>
@@ -405,12 +396,8 @@ export const Sidebar = ({
         <div
           className={cn(
             "h-[72px] flex items-center border-b",
-            isLight
-              ? "border-slate-200"
-              : "border-white/[0.06]",
-            collapsed
-              ? "justify-center px-2"
-              : "justify-between px-5",
+            isLight ? "border-slate-200" : "border-white/[0.06]",
+            collapsed ? "justify-center px-2" : "justify-between px-5",
           )}
         >
           {/* -------------------------------------------------
@@ -418,10 +405,7 @@ export const Sidebar = ({
               ------------------------------------------------- */}
 
           {!collapsed && (
-            <Link
-              to="/dashboard"
-              className="flex items-center min-w-0"
-            >
+            <Link to="/dashboard" className="flex items-center min-w-0">
               <img
                 src={
                   isLight
@@ -456,7 +440,7 @@ export const Sidebar = ({
           )}
 
           {/* -------------------------------------------------
-              BOTÃO ABRIR / FECHAR SIDEBAR
+              BOTÃO ABRIR / FECHAR
               ------------------------------------------------- */}
 
           <Button
@@ -470,11 +454,7 @@ export const Sidebar = ({
                 : "text-white/60 hover:text-white hover:bg-white/[0.05]",
             )}
           >
-            {collapsed ? (
-              <ChevronRight size={19} />
-            ) : (
-              <ChevronLeft size={19} />
-            )}
+            {collapsed ? <ChevronRight size={19} /> : <ChevronLeft size={19} />}
           </Button>
         </div>
 
@@ -500,9 +480,7 @@ export const Sidebar = ({
                   <div
                     className={cn(
                       "px-3 mb-2 text-[10px] font-semibold tracking-[0.12em]",
-                      isLight
-                        ? "text-slate-400"
-                        : "text-white/35",
+                      isLight ? "text-slate-400" : "text-white/35",
                     )}
                   >
                     {section.title}
@@ -521,19 +499,11 @@ export const Sidebar = ({
                       <Link
                         key={item.path}
                         to={item.path}
-                        title={
-                          collapsed
-                            ? item.label
-                            : undefined
-                        }
+                        title={collapsed ? item.label : undefined}
                         className={cn(
                           "group relative flex items-center h-10 rounded-lg",
                           "transition-all duration-200",
-
-                          collapsed
-                            ? "justify-center px-0"
-                            : "px-3 gap-3",
-
+                          collapsed ? "justify-center px-0" : "px-3 gap-3",
                           active
                             ? isLight
                               ? "bg-blue-500/10 text-blue-600"
@@ -561,9 +531,7 @@ export const Sidebar = ({
                             ICON
                             ------------------------------------- */}
 
-                        <span className="shrink-0">
-                          {item.icon}
-                        </span>
+                        <span className="shrink-0">{item.icon}</span>
 
                         {/* -------------------------------------
                             LABEL
@@ -588,10 +556,7 @@ export const Sidebar = ({
                                 : "In development"
                             }
                           >
-                            <LoadingCircle
-                              size={16}
-                              isLight={isLight}
-                            />
+                            <LoadingCircle size={16} isLight={isLight} />
                           </span>
                         )}
                       </Link>

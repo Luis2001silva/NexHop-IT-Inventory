@@ -27,7 +27,7 @@ export function useUserRole() {
     const loadRole = async () => {
       try {
         /* ---------------------------------------------------
-           Obter utilizador atualmente autenticado
+           Obter o utilizador atualmente autenticado
         --------------------------------------------------- */
 
         const {
@@ -35,7 +35,7 @@ export function useUserRole() {
         } = await supabase.auth.getUser();
 
         /* ---------------------------------------------------
-           Se não existir sessão, não existe role
+           Sem utilizador autenticado
         --------------------------------------------------- */
 
         if (!user) {
@@ -63,6 +63,7 @@ export function useUserRole() {
 
         if (mounted) {
           if (error) {
+            console.error("Error loading user role:", error);
             setRole(null);
           } else {
             setRole(data?.role as UserRole);
@@ -88,7 +89,7 @@ export function useUserRole() {
 
     /* =====================================================
        CLEANUP
-    ===================================================== */
+       ===================================================== */
 
     return () => {
       mounted = false;
@@ -96,11 +97,23 @@ export function useUserRole() {
   }, []);
 
   /* =========================================================
+     ROLE HELPERS
+     Facilita a utilização do role no resto da aplicação.
+     ========================================================= */
+
+  const isAdmin = role === "admin";
+  const isViewer = role === "viewer";
+  const isUser = role === "user";
+
+  /* =========================================================
      RETURN
-  ========================================================= */
+     ========================================================= */
 
   return {
     role,
+    isAdmin,
+    isViewer,
+    isUser,
     loading,
   };
 }
