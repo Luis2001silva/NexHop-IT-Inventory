@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 
 import { useLanguage } from '@/context/LanguageContext';
-import { useAuth } from '@/context/AuthContext';
+import { useUserRole } from '@/hooks/useUserRole';
 import NexaDatePicker from '@/components/ui/nexa-date-picker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -86,7 +86,17 @@ const EquipmentDetail = () => {
   const navigate = useNavigate();
 
   const { language } = useLanguage();
-  const { isAdmin } = useAuth();
+  // =======================================================
+  // USER ROLE
+  //
+  // O role vem da tabela "profiles" através do hook
+  // useUserRole(). Apenas o role "admin" pode criar,
+  // editar ou eliminar equipamentos.
+  // =======================================================
+
+  const { role, loading: roleLoading } = useUserRole();
+
+  const isAdmin = role === 'admin';
 
   const isNewEquipment = id === 'new';
   const isPT = language === 'pt';
@@ -373,6 +383,25 @@ const EquipmentDetail = () => {
 
   /*
    * ---------------------------------------------------------
+   * ROLE LOADING
+   *
+   * Esperamos pelo carregamento do role antes de apresentar
+   * as ações administrativas.
+   * ---------------------------------------------------------
+   */
+
+  if (roleLoading) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center bg-[#080D1F] text-white">
+        <div className="text-sm text-white/40">
+          {isPT ? 'A carregar...' : 'Loading...'}
+        </div>
+      </div>
+    );
+  }
+
+  /*
+   * ---------------------------------------------------------
    * LOAD
    * ---------------------------------------------------------
    */
@@ -587,8 +616,14 @@ const EquipmentDetail = () => {
    * ---------------------------------------------------------
    */
 
+  // =======================================================
+  // SAVE EQUIPMENT
+  //
+  // Apenas Admin pode criar ou editar equipamentos.
+  // =======================================================
+
   const handleSave = async () => {
-    if (!equipment) return;
+    if (!isAdmin || !equipment) return;
 
     if (!equipment.name.trim()) {
       toast.error(
@@ -707,8 +742,16 @@ const EquipmentDetail = () => {
    * ---------------------------------------------------------
    */
 
+  // =======================================================
+  // DELETE EQUIPMENT
+  //
+  // Apenas Admin pode eliminar equipamentos.
+  // A proteção visual do botão existe na interface, mas esta
+  // verificação também impede a execução pelo handler.
+  // =======================================================
+
   const handleDelete = async () => {
-    if (!equipment?.id) return;
+    if (!isAdmin || !equipment?.id) return;
 
     try {
       const { error } = await supabase
@@ -2074,7 +2117,7 @@ const EquipmentDetail = () => {
                               currency: 'EUR',
                             }
                           ).format(
-                            invoice.total_amount ?? 0
+                            invoice.total ?? 0
                           )}
 
                         </span>
