@@ -6,30 +6,32 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import { ThemeProvider } from "@/context/ThemeContext";
 import { LanguageProvider } from "@/context/LanguageContext";
-import { AuthProvider } from "@/context/AuthContext";
+import { ProtectedRoute } from "@/components/Auth/ProtectedRoute";
+import Forbidden from "@/pages/Forbidden";
 
 import AppLayout from "@/components/Layout/AppLayout";
 
-import ServerError from '@/pages/ServerError';
-import HomePage from "@/pages/HomePage";
+import AlertsPage from "@/pages/AlertsPage";
+
+import ServerError from "@/pages/ServerError";
 import CreateAccountPage from "@/pages/CreateAccountPage";
-import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
-import LoginPage from "@/pages/LoginPage";
 import Dashboard from "@/pages/Dashboard";
-import HierarchyPage from '@/pages/HierarchyPage';
-import EquipmentPage from "@/pages/EquipmentPage";
 import DocumentsPage from "@/pages/DocumentsPage";
-import ReportsPage from "@/pages/ReportsPage";
-import AlertsPage from '@/pages/AlertsPage';
+import EquipmentPage from "@/pages/EquipmentPage";
+import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
+import HierarchyPage from "@/pages/HierarchyPage";
+import HomePage from "@/pages/HomePage";
+import LoginPage from "@/pages/LoginPage";
+import LogsPage from "@/pages/LogsPage";
+import NotFound from "@/pages/NotFound";
 import InvoicePage from "@/pages/InvoicePage";
-import ReservationsPage from '@/pages/ReservationsPage';
-import SupportPage from '@/pages/SupportPage';
+import ProfilePage from "@/pages/ProfilePage";
+import ReportsPage from "@/pages/ReportsPage";
+import ReservationsPage from "@/pages/ReservationsPage";
+import SupportPage from "@/pages/SupportPage";
 import SettingsPage from "@/pages/SettingsPage";
 import UsersPage from "@/pages/UsersPage";
-import WarrantyPage from '@/pages/WarrantyPage';
-import ProfilePage from '@/pages/ProfilePage';
-import LogsPage from '@/pages/LogsPage';
-import NotFound from "@/pages/NotFound";
+import WarrantyPage from "@/pages/WarrantyPage";
 
 const queryClient = new QueryClient();
 
@@ -37,155 +39,93 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
       <LanguageProvider>
-        <AuthProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
 
-            <BrowserRouter>
-            
-              <Routes>
+          <BrowserRouter>
+            <Routes>
 
-                {/* =========================================
-                    PUBLIC
-                ========================================= */}
+              {/* PUBLIC */}
 
-                <Route path="/" element={<HomePage />} />
+              <Route path="/" element={<HomePage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/create-account" element={<CreateAccountPage />} />
 
-                <Route path="/login" element={<LoginPage />} />
+              {/* IT PANEL */}
 
-                <Route
-                  path="/forgot-password"
-                  element={<ForgotPasswordPage />}
-                />
+             {/* IT PANEL */}
 
-                <Route
-                  path="/create-account"
-                  element={<CreateAccountPage />}
-                />
-
-                {/* =========================================
-                    APPLICATION
-                ========================================= */}
-
+              <Route element={<ProtectedRoute allowedRoles={["admin", "viewer"]} />}>
                 <Route path="/" element={<AppLayout />}>
 
                   {/* Dashboard */}
-                  <Route
-                    path="dashboard"
-                    element={<Dashboard />}
-                  />  
+                  <Route path="dashboard" element={<Dashboard />} />
 
                   {/* Hierarchy */}
-                  <Route 
-                  path="/hierarchy" 
-                  element={<HierarchyPage />} />
+                  <Route path="hierarchy" element={<HierarchyPage />} />
 
                   {/* Server Error */}
-                  <Route 
-                  path="/500" 
-                  element={<ServerError />} />
-                  
+                  <Route path="500" element={<ServerError />} />
+
                   {/* Warranties */}
-                  <Route 
-                  path="/warranties" 
-                  element={<WarrantyPage />} />
+                  <Route path="warranties" element={<WarrantyPage />} />
 
                   {/* Reservations */}
-                  <Route 
-                  path="/reservations" 
-                  element={<ReservationsPage />} />
+                  <Route path="reservations" element={<ReservationsPage />} />
 
                   {/* Equipment */}
-                  <Route
-                    path="equipment"
-                    element={<EquipmentPage />}
-                  />
-                  
-                  {/* Equipment Details*/}
-                  <Route
-                    path="equipment/:id"
-                    element={<EquipmentPage />}
-                  />
+                  <Route path="equipment" element={<EquipmentPage />} />
+
+                  {/* Equipment Details */}
+                  <Route path="equipment/:id" element={<EquipmentPage />} />
 
                   {/* Reports */}
-                  <Route
-                    path="reports"
-                    element={<ReportsPage />}
-                  />
+                  <Route path="reports" element={<ReportsPage />} />
 
                   {/* Documents */}
-                  <Route
-                    path="documents"
-                    element={<DocumentsPage />}
-                  />
+                  <Route path="documents" element={<DocumentsPage />} />
 
                   {/* Alerts */}
-                  <Route 
-                    path="/alerts" 
-                    element={<AlertsPage />} 
-                  />
+                  <Route path="alerts" element={<AlertsPage />} />
 
                   {/* Profile */}
-                  <Route 
-                    path="/profile" 
-                    element={<ProfilePage />} 
-                  />
-                  
-                  {/* Invoices */}
-                  <Route
-                    path="invoices"
-                    element={<InvoicePage />}
-                  />
+                  <Route path="profile" element={<ProfilePage />} />
 
-                  <Route
-                    path="invoices/:id"
-                    element={<InvoicePage />}
-                  />
+                  {/* Invoices */}
+                  <Route path="invoices" element={<InvoicePage />} />
+
+                  {/* Invoice Details */}
+                  <Route path="invoices/:id" element={<InvoicePage />} />
 
                   {/* Logs */}
-                  <Route 
-                    path="/logs" 
-                    element={<LogsPage />} 
-                  />
+                  <Route path="logs" element={<LogsPage />} />
 
                   {/* Support */}
-                  <Route path="/support" 
-                  element={<SupportPage />} 
-                  />
+                  <Route path="support" element={<SupportPage />} />
 
                   {/* Users */}
-                  <Route
-                    path="users"
-                    element={<UsersPage />}
-                  />
+                  <Route path="users" element={<UsersPage />} />
 
                   {/* Settings */}
-                  <Route
-                    path="settings"
-                    element={<SettingsPage />}
-                  />
+                  <Route path="settings" element={<SettingsPage />} />
 
                 </Route>
+              </Route>
 
-                <Route 
-                path="/settings" 
-                element={<SettingsPage />} />
+              {/* ACCESS DENIED */}
 
-                {/* =========================================
-                    404
-                ========================================= */}
+              <Route path="/403" element={<Forbidden />} />
 
-                <Route
-                  path="*"
-                  element={<NotFound />}
-                />
+              {/* 404 */}
 
-              </Routes>
-            </BrowserRouter>
+              <Route path="*" element={<NotFound />} />
 
-          </TooltipProvider>
-        </AuthProvider>
+            </Routes>
+          </BrowserRouter>
+
+        </TooltipProvider>
       </LanguageProvider>
     </ThemeProvider>
   </QueryClientProvider>

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { useLanguage } from '@/context/LanguageContext';
-import { useAuth } from '@/context/AuthContext';
+import { useUserRole } from '@/hooks/useUserRole';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -49,24 +49,58 @@ import {
   Wrench,
 } from 'lucide-react';
 
+/* =========================================================
+   USERS PAGE
+
+   Página de gestão dos utilizadores do sistema IT.
+
+   Permissões:
+   - Admin  -> pode adicionar, editar e atribuir equipamento.
+   - Viewer -> pode consultar os utilizadores.
+   - User   -> será tratado posteriormente com o My Portal.
+
+   O role é obtido através de:
+   profiles.role
+   ========================================================= */
+
 const UsersPage = () => {
   const { language } = useLanguage();
-  const { isAdmin } = useAuth();
+
+  /* =========================================================
+     USER ROLE
+
+     O role vem diretamente da tabela "profiles" através
+     do hook useUserRole().
+
+     Não usamos mais "isAdmin" vindo do AuthContext.
+     ========================================================= */
+
+  const { role, loading: roleLoading } = useUserRole();
 
   const isPT = language === 'pt';
 
-  // =========================================================
-  // FILTERS
-  // =========================================================
+  /* =========================================================
+     ADMIN PERMISSION
+
+     Apenas utilizadores com:
+     profiles.role = "admin"
+
+     podem executar ações administrativas.
+     ========================================================= */
+
+  const isAdmin = role === 'admin';
+
+  /* =========================================================
+     FILTERS
+     ========================================================= */
 
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [departmentFilter, setDepartmentFilter] = useState('all');
 
-
-  // =========================================================
-  // DIALOGS
-  // =========================================================
+  /* =========================================================
+     DIALOGS
+     ========================================================= */
 
   const [isAddUserDialogOpen, setIsAddUserDialogOpen] =
     useState(false);
@@ -82,15 +116,19 @@ const UsersPage = () => {
   const [userDetailsOpen, setUserDetailsOpen] =
     useState(false);
 
-  // =========================================================
-  // SELECTED USER
-  // =========================================================
+  /* =========================================================
+     SELECTED USER
+     ========================================================= */
 
   const [selectedUserId, setSelectedUserId] =
     useState<string | null>(null);
 
   const [selectedUser, setSelectedUser] =
     useState<any | null>(null);
+
+  /* =========================================================
+     EDIT USER FORM
+     ========================================================= */
 
   const [editUserForm, setEditUserForm] = useState({
     full_name: '',
@@ -103,9 +141,9 @@ const UsersPage = () => {
 
   const [savingUser, setSavingUser] = useState(false);
 
-  // =========================================================
-  // DATA
-  // =========================================================
+  /* =========================================================
+     DATA
+     ========================================================= */
 
   const [users, setUsers] = useState<any[]>([]);
 
@@ -119,17 +157,23 @@ const UsersPage = () => {
 
   const [loading, setLoading] = useState(true);
 
-  // =========================================================
-  // PAGINATION
-  // =========================================================
+  /* =========================================================
+     PAGINATION
+     ========================================================= */
 
   const [currentPage, setCurrentPage] = useState(1);
 
   const itemsPerPage = 8;
 
-  // =========================================================
-  // LOAD DATA
-  // =========================================================
+  /* =========================================================
+     LOAD DATA
+
+     Carrega:
+     - utilizadores
+     - equipamentos
+     - equipamentos atribuídos
+     - equipamentos não atribuídos
+     ========================================================= */
 
   useEffect(() => {
     loadData();
@@ -139,24 +183,24 @@ const UsersPage = () => {
     setLoading(true);
 
     try {
-      // -----------------------------------------------------
-      // USERS
-      // -----------------------------------------------------
+      /* =====================================================
+         USERS
+         ===================================================== */
 
       const usersRes = await supabase
-      .from('profiles')
-      .select(`
-        id,
-        full_name,
-        email,
-        role,
-        department,
-        position,
-        sap_number,
-        manager_id,
-        created_at
-      `)
-      .order('full_name');
+        .from('profiles')
+        .select(`
+          id,
+          full_name,
+          email,
+          role,
+          department,
+          position,
+          sap_number,
+          manager_id,
+          created_at
+        `)
+        .order('full_name');
 
       if (usersRes.error) {
         console.error(
@@ -173,12 +217,12 @@ const UsersPage = () => {
 
       setUsers(usersRes.data ?? []);
 
-      // -----------------------------------------------------
-      // EQUIPMENT - MINIMAL QUERY
-      //
-      // Esta query é usada para os números.
-      // Não depende de relações.
-      // -----------------------------------------------------
+      /* =====================================================
+         EQUIPMENT - MINIMAL QUERY
+
+         Esta query é usada para obter os números gerais
+         de equipamentos atribuídos e não atribuídos.
+         ===================================================== */
 
       const equipmentCountRes = await supabase
         .from('equipment')
@@ -198,18 +242,19 @@ const UsersPage = () => {
 
         setEquipmentAssignments([]);
         setUnassignedEquipmentCount(0);
+
         return;
       }
 
       const allEquipment =
         equipmentCountRes.data ?? [];
 
-      // -----------------------------------------------------
-      // ASSIGNED / UNASSIGNED
-      //
-      // Consideramos null, undefined e string vazia
-      // como equipamento não atribuído.
-      // -----------------------------------------------------
+      /* =====================================================
+         ASSIGNED / UNASSIGNED
+
+         null, undefined e string vazia significam que
+         o equipamento não está atribuído.
+         ===================================================== */
 
       const assignedIds = new Set(
         allEquipment
@@ -237,11 +282,12 @@ const UsersPage = () => {
         unassignedCount
       );
 
-      // -----------------------------------------------------
-      // EQUIPMENT - FULL QUERY
-      //
-      // Esta query é apenas para mostrar os dados na tabela.
-      // -----------------------------------------------------
+      /* =====================================================
+         EQUIPMENT - FULL QUERY
+
+         Query utilizada para apresentar os equipamentos
+         associados aos utilizadores.
+         ===================================================== */
 
       const equipmentDetailsRes =
         await supabase
@@ -267,7 +313,10 @@ const UsersPage = () => {
           equipmentDetailsRes.error
         );
 
-        // Se as relações falharem, usamos a query simples.
+        /* ---------------------------------------------------
+           Se as relações falharem, usamos a query simples.
+           --------------------------------------------------- */
+
         const fallbackAssigned =
           allEquipment.filter((equipment) => {
             const value =
@@ -321,9 +370,11 @@ const UsersPage = () => {
     }
   }
 
-  // =========================================================
-  // DEPARTMENTS
-  // =========================================================
+  /* =========================================================
+     DEPARTMENTS
+
+     Cria a lista de departamentos existentes nos perfis.
+     ========================================================= */
 
   const departments = useMemo(() => {
     return Array.from(
@@ -335,9 +386,9 @@ const UsersPage = () => {
     ).sort();
   }, [users]);
 
-  // =========================================================
-  // FILTER USERS
-  // =========================================================
+  /* =========================================================
+     FILTER USERS
+     ========================================================= */
 
   const filteredUsers = useMemo(() => {
     const search =
@@ -383,9 +434,9 @@ const UsersPage = () => {
     departmentFilter,
   ]);
 
-  // =========================================================
-  // PAGINATION
-  // =========================================================
+  /* =========================================================
+     PAGINATION
+     ========================================================= */
 
   const totalPages = Math.max(
     1,
@@ -403,6 +454,10 @@ const UsersPage = () => {
         itemsPerPage
     );
 
+  /* ---------------------------------------------------------
+     Voltar para a primeira página quando os filtros mudam.
+     --------------------------------------------------------- */
+
   useEffect(() => {
     setCurrentPage(1);
   }, [
@@ -411,9 +466,9 @@ const UsersPage = () => {
     departmentFilter,
   ]);
 
-  // =========================================================
-  // STATS
-  // =========================================================
+  /* =========================================================
+     STATS
+     ========================================================= */
 
   const adminCount =
     users.filter(
@@ -430,18 +485,28 @@ const UsersPage = () => {
   const assignedEquipmentCount =
     equipmentAssignments.length;
 
-      // =========================================================
-  // EQUIPMENT COUNT PER USER
-  // =========================================================
+  /* =========================================================
+     EQUIPMENT COUNT PER USER
+     ========================================================= */
 
-  const getUserEquipmentCount = (userId: string) => {
+  const getUserEquipmentCount = (
+    userId: string
+  ) => {
     return equipmentAssignments.filter(
       (equipment) =>
-        String(equipment.assigned_user) === String(userId)
+        String(
+          equipment.assigned_user
+        ) === String(userId)
     ).length;
   };
 
-  const getEquipmentCountStyle = (count: number) => {
+  /* =========================================================
+     EQUIPMENT COUNT STYLE
+     ========================================================= */
+
+  const getEquipmentCountStyle = (
+    count: number
+  ) => {
     if (count === 0) {
       return {
         wrapper:
@@ -462,9 +527,9 @@ const UsersPage = () => {
       };
   };
 
-  // =========================================================
-  // INITIALS
-  // =========================================================
+  /* =========================================================
+     INITIALS
+     ========================================================= */
 
   const getInitials = (
     name?: string
@@ -483,9 +548,9 @@ const UsersPage = () => {
       .join('');
   };
 
-  // =========================================================
-  // EQUIPMENT ICON
-  // =========================================================
+  /* =========================================================
+     EQUIPMENT ICON
+     ========================================================= */
 
   const getEquipmentIcon = (
     equipment: any
@@ -520,9 +585,9 @@ const UsersPage = () => {
     return Monitor;
   };
 
-  // =========================================================
-  // STATUS
-  // =========================================================
+  /* =========================================================
+     STATUS
+     ========================================================= */
 
   const getStatus = (
     status: string
@@ -578,9 +643,9 @@ const UsersPage = () => {
     }
   };
 
-  // =========================================================
-  // ADD USER
-  // =========================================================
+  /* =========================================================
+     ADD USER SUCCESS
+     ========================================================= */
 
   const handleAddUserSuccess = (
     newUser: any
@@ -593,14 +658,27 @@ const UsersPage = () => {
 
     setIsAddUserDialogOpen(false);
 
+    /* -------------------------------------------------------
+       Recarregar a lista depois de criar o utilizador.
+       ------------------------------------------------------- */
+
     loadData();
   };
 
-  // =========================================================
-  // EDIT USER
-  // =========================================================
+  /* =========================================================
+     EDIT USER
+     ========================================================= */
 
-  const openEditUserDialog = (user: any) => {
+  const openEditUserDialog = (
+    user: any
+  ) => {
+    /* -------------------------------------------------------
+       Segurança adicional no frontend.
+
+       Mesmo que o botão esteja escondido, não permitimos
+       abrir a edição se não for Admin.
+       ------------------------------------------------------- */
+
     if (!isAdmin) return;
 
     setSelectedUser(user);
@@ -617,7 +695,16 @@ const UsersPage = () => {
     setIsEditUserDialogOpen(true);
   };
 
+  /* =========================================================
+     SAVE USER EDIT
+     ========================================================= */
+
   const handleEditUser = async () => {
+    /* -------------------------------------------------------
+       Nunca permitir esta operação no frontend para Viewer.
+       A RLS do Supabase também deve proteger a operação.
+       ------------------------------------------------------- */
+
     if (!isAdmin || !selectedUser) return;
 
     if (!editUserForm.full_name.trim()) {
@@ -626,27 +713,47 @@ const UsersPage = () => {
           ? 'O nome é obrigatório.'
           : 'Name is required.'
       );
+
       return;
     }
 
     setSavingUser(true);
 
     try {
+      /* -----------------------------------------------------
+         Atualizar apenas os campos existentes na tabela
+         profiles.
+         ----------------------------------------------------- */
+
       const { error } = await (supabase as any)
-      .from('profiles')
-      .update({
-        full_name: editUserForm.full_name.trim(),
-        department:
-          editUserForm.department.trim() || null,
-        position:
-          editUserForm.position.trim() || null,
-        sap_number:
-          editUserForm.sap_number.trim() || null,
-        role: editUserForm.role,
-        manager_id:
-          editUserForm.manager_id || null,
-      })
-      .eq('id', selectedUser.id);
+        .from('profiles')
+        .update({
+          full_name:
+            editUserForm.full_name.trim(),
+
+          department:
+            editUserForm.department.trim() ||
+            null,
+
+          position:
+            editUserForm.position.trim() ||
+            null,
+
+          sap_number:
+            editUserForm.sap_number.trim() ||
+            null,
+
+          role:
+            editUserForm.role,
+
+          manager_id:
+            editUserForm.manager_id ||
+            null,
+        })
+        .eq(
+          'id',
+          selectedUser.id
+        );
 
       if (error) throw error;
 
@@ -658,9 +765,13 @@ const UsersPage = () => {
 
       setIsEditUserDialogOpen(false);
       setSelectedUser(null);
+
       await loadData();
     } catch (error: any) {
-      console.error('Edit user error:', error);
+      console.error(
+        'Edit user error:',
+        error
+      );
 
       toast.error(
         error?.message ||
@@ -673,13 +784,19 @@ const UsersPage = () => {
     }
   };
 
-  // =========================================================
-  // ASSIGN EQUIPMENT
-  // =========================================================
+  /* =========================================================
+     ASSIGN EQUIPMENT
+     ========================================================= */
 
   const openAssignEquipmentDialog = (
     userId?: string
   ) => {
+    /* -------------------------------------------------------
+       Apenas Admin pode atribuir equipamento.
+       ------------------------------------------------------- */
+
+    if (!isAdmin) return;
+
     setSelectedUserId(
       userId ?? null
     );
@@ -706,9 +823,9 @@ const UsersPage = () => {
       loadData();
     };
 
-  // =========================================================
-  // USER DETAILS
-  // =========================================================
+  /* =========================================================
+     USER DETAILS
+     ========================================================= */
 
   const openUserDetails = (
     user: any
@@ -717,9 +834,9 @@ const UsersPage = () => {
     setUserDetailsOpen(true);
   };
 
-  // =========================================================
-  // SELECTED USER EQUIPMENT
-  // =========================================================
+  /* =========================================================
+     SELECTED USER EQUIPMENT
+     ========================================================= */
 
   const selectedUserEquipment =
     selectedUser
@@ -728,33 +845,52 @@ const UsersPage = () => {
             String(
               equipment.assigned_user
             ) ===
-            String(selectedUser.id)
+            String(
+              selectedUser.id
+            )
         )
       : [];
 
-  // =========================================================
-  // PAGE
-  // =========================================================
+  /* =========================================================
+     ROLE LOADING
+
+     Enquanto o role está a ser carregado, esperamos antes
+     de mostrar a página.
+
+     Isto evita o problema de um Admin aparecer inicialmente
+     como Viewer.
+     ========================================================= */
+
+  if (roleLoading) {
+    return (
+      <div className="min-h-full bg-[#080D1F] flex items-center justify-center text-white">
+        <div className="text-sm text-white/40">
+          {isPT
+            ? 'A carregar...'
+            : 'Loading...'}
+        </div>
+      </div>
+    );
+  }
+
+  /* =========================================================
+     PAGE
+     ========================================================= */
 
   return (
-    <div
-      className="min-h-full bg-[#080D1F] px-6 py-7 lg:px-8 text-white"
-    >
-      <div
-        className="space-y-5"
-      >
+    <div className="min-h-full bg-[#080D1F] px-6 py-7 lg:px-8 text-white">
+      <div className="space-y-5">
 
         {/* ===================================================
             HEADER
-        =================================================== */}
+            =================================================== */}
 
-        <div
-          className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between"
-        >
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
-
             <h1 className="text-2xl font-bold tracking-tight text-white">
-              {isPT ? 'Utilizadores' : 'Users'}
+              {isPT
+                ? 'Utilizadores'
+                : 'Users'}
             </h1>
 
             <p className="mt-1 text-sm text-slate-400">
@@ -764,60 +900,58 @@ const UsersPage = () => {
             </p>
           </div>
 
-          <div
-            className="flex flex-wrap items-center gap-3"
-          >
+          {/* -------------------------------------------------
+              ADMIN ACTIONS
 
-            {isAdmin && (
-              <>
-            {/* ASSIGN EQUIPMENT */}
+              Só aparecem para Admin.
+              ------------------------------------------------- */}
 
-            <Button
-              variant="outline"
-              onClick={() =>
-                openAssignEquipmentDialog()
-              }
-              className="border-amber-500/20 bg-amber-500/5 text-amber-400 transition-all hover:border-amber-500/30 hover:bg-amber-500/10 hover:text-amber-300"
-            >
-              <Package className="mr-2 h-4 w-4" />
+          {isAdmin && (
+            <div className="flex flex-wrap items-center gap-3">
 
-              {isPT
-                ? 'Atribuir equipamento'
-                : 'Assign equipment'}
-            </Button>
+              {/* ASSIGN EQUIPMENT */}
 
-            {/* ADD USER */}
+              <Button
+                variant="outline"
+                onClick={() =>
+                  openAssignEquipmentDialog()
+                }
+                className="border-amber-500/20 bg-amber-500/5 text-amber-400 transition-all hover:border-amber-500/30 hover:bg-amber-500/10 hover:text-amber-300"
+              >
+                <Package className="mr-2 h-4 w-4" />
 
-            <Button
-              onClick={() =>
-                setIsAddUserDialogOpen(true)
-              }
-              className="bg-blue-600 font-semibold text-white shadow-lg shadow-blue-600/20 transition-all hover:bg-blue-500"
-            >
-              <UserPlus className="mr-2 h-4 w-4" />
+                {isPT
+                  ? 'Atribuir equipamento'
+                  : 'Assign equipment'}
+              </Button>
 
-              {isPT
-                ? 'Adicionar utilizador'
-                : 'Add user'}
-            </Button>
-              </>
-            )}
-          </div>
+              {/* ADD USER */}
+
+              <Button
+                onClick={() =>
+                  setIsAddUserDialogOpen(true)
+                }
+                className="bg-blue-600 font-semibold text-white shadow-lg shadow-blue-600/20 transition-all hover:bg-blue-500"
+              >
+                <UserPlus className="mr-2 h-4 w-4" />
+
+                {isPT
+                  ? 'Adicionar utilizador'
+                  : 'Add user'}
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* ===================================================
             STATS
-        =================================================== */}
+            =================================================== */}
 
-        <div
-          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5"
-        >
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
 
           {/* TOTAL */}
 
-          <div
-            className="rounded-xl border border-blue-500/20 bg-[#0D1730] p-5"
-          >
+          <div className="rounded-xl border border-blue-500/20 bg-[#0D1730] p-5">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm text-white/45">
@@ -831,9 +965,7 @@ const UsersPage = () => {
                 </p>
               </div>
 
-              <div
-                className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10"
-              >
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
                 <Users className="h-5 w-5 text-blue-400" />
               </div>
             </div>
@@ -841,9 +973,7 @@ const UsersPage = () => {
 
           {/* ADMIN */}
 
-          <div
-            className="rounded-xl border border-violet-500/20 bg-[#0D1730] p-5"
-          >
+          <div className="rounded-xl border border-violet-500/20 bg-[#0D1730] p-5">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm text-white/45">
@@ -857,9 +987,7 @@ const UsersPage = () => {
                 </p>
               </div>
 
-              <div
-                className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-500/10"
-              >
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-500/10">
                 <ShieldCheck className="h-5 w-5 text-violet-400" />
               </div>
             </div>
@@ -867,9 +995,7 @@ const UsersPage = () => {
 
           {/* USERS */}
 
-          <div
-            className="rounded-xl border border-emerald-500/20 bg-[#0D1730] p-5"
-          >
+          <div className="rounded-xl border border-emerald-500/20 bg-[#0D1730] p-5">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm text-white/45">
@@ -883,9 +1009,7 @@ const UsersPage = () => {
                 </p>
               </div>
 
-              <div
-                className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10"
-              >
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10">
                 <Eye className="h-5 w-5 text-emerald-400" />
               </div>
             </div>
@@ -893,9 +1017,7 @@ const UsersPage = () => {
 
           {/* ASSIGNED */}
 
-          <div
-            className="rounded-xl border border-amber-500/20 bg-[#0D1730] p-5"
-          >
+          <div className="rounded-xl border border-amber-500/20 bg-[#0D1730] p-5">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm text-white/45">
@@ -909,9 +1031,7 @@ const UsersPage = () => {
                 </p>
               </div>
 
-              <div
-                className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10"
-              >
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10">
                 <Monitor className="h-5 w-5 text-amber-400" />
               </div>
             </div>
@@ -919,9 +1039,7 @@ const UsersPage = () => {
 
           {/* UNASSIGNED */}
 
-          <div
-            className="rounded-xl border border-orange-500/20 bg-[#0D1730] p-5"
-          >
+          <div className="rounded-xl border border-orange-500/20 bg-[#0D1730] p-5">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm text-white/45">
@@ -931,13 +1049,13 @@ const UsersPage = () => {
                 </p>
 
                 <p className="mt-2 text-2xl font-bold text-white">
-                  {isAdmin ? unassignedEquipmentCount : '—'}
+                  {isAdmin
+                    ? unassignedEquipmentCount
+                    : '—'}
                 </p>
               </div>
 
-              <div
-                className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-500/10"
-              >
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-500/10">
                 <Package className="h-5 w-5 text-orange-400" />
               </div>
             </div>
@@ -945,365 +1063,340 @@ const UsersPage = () => {
         </div>
 
         {/* ===================================================
-            USERS TAB
-        =================================================== */}
+            FILTER BAR
+            =================================================== */}
 
-            {/* FILTER BAR */}
+        <div className="rounded-xl border border-blue-500/20 bg-[#0D1730] p-4">
+          <div className="flex flex-col gap-3 lg:flex-row">
 
-            <div
-              className="rounded-xl border border-blue-500/20 bg-[#0D1730] p-4"
-            >
-              <div
-                className="flex flex-col gap-3 lg:flex-row"
-              >
+            {/* SEARCH */}
 
-                {/* SEARCH */}
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/25" />
 
-                <div className="relative flex-1">
-                  <Search
-                    className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/25"
-                  />
-
-                  <Input
-                    value={searchTerm}
-                    onChange={(event) =>
-                      setSearchTerm(
-                        event.target.value
-                      )
-                    }
-                    placeholder={
-                      isPT
-                        ? 'Pesquisar utilizador, email, SAP...'
-                        : 'Search user, email, SAP...'
-                    }
-                    className="h-11 border-white/10 bg-[#0A1328] pl-10 text-white placeholder:text-white/25 focus:border-blue-500/50 focus:ring-blue-500/20"
-                  />
-                </div>
-
-                {/* ROLE */}
-
-                <Select
-                  value={roleFilter}
-                  onValueChange={
-                    setRoleFilter
-                  }
-                >
-                  <SelectTrigger
-                    className="h-11 w-full border-white/10 bg-[#0A1328] text-white sm:w-[180px]"
-                  >
-                    <SelectValue
-                      placeholder={
-                        isPT
-                          ? 'Função'
-                          : 'Role'
-                      }
-                    />
-                  </SelectTrigger>
-
-                  <SelectContent
-                    className="border-blue-500/20 bg-[#0D1730] text-white"
-                  >
-                    <SelectItem value="all">
-                      {isPT
-                        ? 'Todas as funções'
-                        : 'All roles'}
-                    </SelectItem>
-
-                    <SelectItem value="admin">
-                      {isPT
-                        ? 'Administrador'
-                        : 'Administrator'}
-                    </SelectItem>
-
-                    <SelectItem value="viewer">
-                      {isPT
-                        ? 'Utilizador'
-                        : 'Viewer'}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-
-                {/* DEPARTMENT */}
-
-                <Select
-                  value={departmentFilter}
-                  onValueChange={
-                    setDepartmentFilter
-                  }
-                >
-                  <SelectTrigger
-                    className="h-11 w-full border-white/10 bg-[#0A1328] text-white sm:w-[220px]"
-                  >
-                    <SelectValue
-                      placeholder={
-                        isPT
-                          ? 'Departamento'
-                          : 'Department'
-                      }
-                    />
-                  </SelectTrigger>
-
-                  <SelectContent
-                    className="max-h-[280px] border-blue-500/20 bg-[#0D1730] text-white"
-                  >
-                    <SelectItem value="all">
-                      {isPT
-                        ? 'Todos os departamentos'
-                        : 'All departments'}
-                    </SelectItem>
-
-                    {departments.map(
-                      (department) => (
-                        <SelectItem
-                          key={department}
-                          value={department}
-                        >
-                          {department}
-                        </SelectItem>
-                      )
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
+              <Input
+                value={searchTerm}
+                onChange={(event) =>
+                  setSearchTerm(
+                    event.target.value
+                  )
+                }
+                placeholder={
+                  isPT
+                    ? 'Pesquisar utilizador, email, SAP...'
+                    : 'Search user, email, SAP...'
+                }
+                className="w-full h-11 border-white/10 bg-[#0A1328] pl-10 text-white placeholder:text-white/25 focus:border-blue-500/50 focus:ring-blue-500/20"
+              />
             </div>
 
-            {/* USERS TABLE */}
+            {/* ROLE */}
 
-            <div
-              className="overflow-hidden rounded-xl border border-blue-500/20 bg-[#0D1730]"
+            <Select
+              value={roleFilter}
+              onValueChange={
+                setRoleFilter
+              }
             >
-              <div className="overflow-x-auto">
-                <table
-                  className="w-full min-w-[900px]"
-                >
-                  <thead>
-                    <tr
-                      className="border-b border-white/[0.07] bg-white/[0.015]"
+              <SelectTrigger className="h-11 w-full border-white/10 bg-[#0A1328] text-white sm:w-[180px]">
+                <SelectValue
+                  placeholder={
+                    isPT
+                      ? 'Função'
+                      : 'Role'
+                  }
+                />
+              </SelectTrigger>
+
+              <SelectContent className="border-blue-500/20 bg-[#0D1730] text-white">
+                <SelectItem value="all">
+                  {isPT
+                    ? 'Todas as funções'
+                    : 'All roles'}
+                </SelectItem>
+
+                <SelectItem value="admin">
+                  {isPT
+                    ? 'Administrador'
+                    : 'Administrator'}
+                </SelectItem>
+
+                <SelectItem value="viewer">
+                  {isPT
+                    ? 'Utilizador'
+                    : 'Viewer'}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* DEPARTMENT */}
+
+            <Select
+              value={departmentFilter}
+              onValueChange={
+                setDepartmentFilter
+              }
+            >
+              <SelectTrigger className="h-11 w-full border-white/10 bg-[#0A1328] text-white sm:w-[220px]">
+                <SelectValue
+                  placeholder={
+                    isPT
+                      ? 'Departamento'
+                      : 'Department'
+                  }
+                />
+              </SelectTrigger>
+
+              <SelectContent className="max-h-[280px] border-blue-500/20 bg-[#0D1730] text-white">
+                <SelectItem value="all">
+                  {isPT
+                    ? 'Todos os departamentos'
+                    : 'All departments'}
+                </SelectItem>
+
+                {departments.map(
+                  (department) => (
+                    <SelectItem
+                      key={department}
+                      value={department}
                     >
-                      <th className="px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-white/35">
+                      {department}
+                    </SelectItem>
+                  )
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* ===================================================
+            USERS TABLE
+            =================================================== */}
+
+        <div className="overflow-hidden rounded-xl border border-blue-500/20 bg-[#0D1730]">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[900px]">
+
+              <thead>
+                <tr className="border-b border-white/[0.07] bg-white/[0.015]">
+
+                  <th className="px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-white/35">
+                    {isPT
+                      ? 'Utilizador'
+                      : 'User'}
+                  </th>
+
+                  <th className="px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-white/35">
+                    {isPT
+                      ? 'Departamento'
+                      : 'Department'}
+                  </th>
+
+                  <th className="px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-white/35">
+                    {isPT
+                      ? 'Cargo'
+                      : 'Position'}
+                  </th>
+
+                  <th className="px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-white/35">
+                    SAP
+                  </th>
+
+                  <th className="px-5 py-4 text-center text-xs font-medium uppercase tracking-wider text-white/35">
+                    {isPT
+                      ? 'Equipamentos'
+                      : 'Equipment'}
+                  </th>
+
+                  <th className="px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-white/35">
+                    {isPT
+                      ? 'Função'
+                      : 'Role'}
+                  </th>
+
+                  <th className="px-5 py-4 text-right text-xs font-medium uppercase tracking-wider text-white/35">
+                    {isPT
+                      ? 'Ações'
+                      : 'Actions'}
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="px-5 py-16 text-center text-sm text-white/35"
+                    >
+                      {isPT
+                        ? 'A carregar utilizadores...'
+                        : 'Loading users...'}
+                    </td>
+                  </tr>
+                ) : paginatedUsers.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="px-5 py-16 text-center"
+                    >
+                      <Users className="mx-auto mb-3 h-9 w-9 text-white/15" />
+
+                      <p className="text-sm text-white/40">
                         {isPT
-                          ? 'Utilizador'
-                          : 'User'}
-                      </th>
+                          ? 'Nenhum utilizador encontrado.'
+                          : 'No users found.'}
+                      </p>
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedUsers.map(
+                    (user) => (
+                      <tr
+                        key={user.id}
+                        className="border-b border-white/[0.05] transition hover:bg-blue-500/[0.025]"
+                      >
 
-                      <th className="px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-white/35">
-                        {isPT
-                          ? 'Departamento'
-                          : 'Department'}
-                      </th>
+                        {/* USER */}
 
-                      <th className="px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-white/35">
-                        {isPT
-                          ? 'Cargo'
-                          : 'Position'}
-                      </th>
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-3">
 
-                      <th className="px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-white/35">
-                        SAP
-                      </th>
-                      
-                      <th className="px-5 py-4 text-center text-xs font-medium uppercase tracking-wider text-white/35">
-                        {isPT
-                          ? 'Equipamentos'
-                          : 'Equipment'}
-                      </th>
-
-                      <th className="px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-white/35">
-                        {isPT
-                          ? 'Função'
-                          : 'Role'}
-                      </th>
-
-                      <th className="px-5 py-4 text-right text-xs font-medium uppercase tracking-wider text-white/35">
-                        {isPT
-                          ? 'Ações'
-                          : 'Actions'}
-                      </th>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {loading ? (
-                      <tr>
-                        <td
-                          colSpan={7}
-                          className="px-5 py-16 text-center text-sm text-white/35"
-                        >
-                          {isPT
-                            ? 'A carregar utilizadores...'
-                            : 'Loading users...'}
-                        </td>
-                      </tr>
-                    ) : paginatedUsers.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={7}
-                          className="px-5 py-16 text-center"
-                        >
-                          <Users
-                            className="mx-auto mb-3 h-9 w-9 text-white/15"
-                          />
-
-                          <p className="text-sm text-white/40">
-                            {isPT
-                              ? 'Nenhum utilizador encontrado.'
-                              : 'No users found.'}
-                          </p>
-                        </td>
-                      </tr>
-                    ) : (
-                      paginatedUsers.map(
-                        (user) => (
-                          <tr
-                            key={user.id}
-                            className="border-b border-white/[0.05] transition hover:bg-blue-500/[0.025]"
-                          >
-                            {/* USER */}
-
-                            <td className="px-5 py-4">
-                              <div className="flex items-center gap-3">
-                                <div
-                                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-blue-500/20 bg-blue-500/10 text-sm font-semibold text-blue-400"
-                                >
-                                  {getInitials(
-                                    user.full_name
-                                  )}
-                                </div>
-
-                                <div className="min-w-0">
-                                  <p
-                                    className="truncate font-medium text-white"
-                                  >
-                                    {user.full_name ||
-                                      (isPT
-                                        ? 'Sem nome'
-                                        : 'No name')}
-                                  </p>
-
-                                  <p
-                                    className="truncate text-xs text-white/35"
-                                  >
-                                    {user.email || '—'}
-                                  </p>
-                                </div>
-                              </div>
-                            </td>
-
-                            {/* DEPARTMENT */}
-
-                            <td className="px-5 py-4">
-                              <span className="text-sm text-white/65">
-                                {user.department || '—'}
-                              </span>
-                            </td>
-
-                            {/* POSITION */}
-
-                            <td className="px-5 py-4">
-                              <span className="text-sm text-white/65">
-                                {user.position || '—'}
-                              </span>
-                            </td>
-
-                            {/* SAP */}
-
-                            <td className="px-5 py-4">
-                              <span className="font-mono text-sm text-white/55">
-                                {user.sap_number || '—'}
-                              </span>
-                            </td>
-
-                            {/* EQUIPMENT COUNT */}
-
-                            <td className="px-5 py-4 text-center">
-                              {(() => {
-                                const equipmentCount = getUserEquipmentCount(user.id);
-                                const equipmentStyle = getEquipmentCountStyle(equipmentCount);
-
-                                return (
-                                  <div className="flex items-center justify-center">
-                                    <span
-                                      className={`
-                                        inline-flex
-                                        h-8
-                                        min-w-8
-                                        items-center
-                                        justify-center
-                                        rounded-lg
-                                        border
-                                        px-2.5
-                                        text-sm
-                                        font-semibold
-                                        ${equipmentStyle.wrapper}
-                                      `}
-                                    >
-                                      {equipmentCount}
-                                    </span>
-                                  </div>
-                                );
-                              })()}
-                            </td>
-
-                            {/* ROLE */}
-
-                            <td className="px-5 py-4">
-                              {user.role === 'admin' ? (
-                                <Badge
-                                  className="border border-violet-500/20 bg-violet-500/10 text-violet-400"
-                                >
-                                  <ShieldCheck className="mr-1.5 h-3.5 w-3.5" />
-
-                                  {isPT
-                                    ? 'Administrador'
-                                    : 'Administrator'}
-                                </Badge>
-                              ) : (
-                                <Badge
-                                  className="border border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
-                                >
-                                  <Eye className="mr-1.5 h-3.5 w-3.5" />
-
-                                  {isPT
-                                    ? 'Utilizador'
-                                    : 'Viewer'}
-                                </Badge>
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-blue-500/20 bg-blue-500/10 text-sm font-semibold text-blue-400">
+                              {getInitials(
+                                user.full_name
                               )}
-                            </td>
+                            </div>
 
-                            {/* ACTIONS */}
+                            <div className="min-w-0">
+                              <p className="truncate font-medium text-white">
+                                {user.full_name ||
+                                  (isPT
+                                    ? 'Sem nome'
+                                    : 'No name')}
+                              </p>
 
-                            <td className="px-5 py-4">
-                              <div className="flex justify-end gap-2">
+                              <p className="truncate text-xs text-white/35">
+                                {user.email ||
+                                  '—'}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
 
-                                {/* VIEW USER */}
+                        {/* DEPARTMENT */}
 
-                                <Button
-                                  size="icon"
-                                  variant="outline"
-                                  onClick={() =>
-                                    openUserDetails(
-                                      user
-                                    )
-                                  }
-                                  className="h-9 w-9 border-emerald-500/20 bg-emerald-500/5 text-emerald-400 transition-all hover:border-emerald-500/30 hover:bg-emerald-500/10 hover:text-emerald-300"
-                                  title={
-                                    isPT
-                                      ? 'Ver utilizador'
-                                      : 'View user'
-                                  }
+                        <td className="px-5 py-4">
+                          <span className="text-sm text-white/65">
+                            {user.department ||
+                              '—'}
+                          </span>
+                        </td>
+
+                        {/* POSITION */}
+
+                        <td className="px-5 py-4">
+                          <span className="text-sm text-white/65">
+                            {user.position ||
+                              '—'}
+                          </span>
+                        </td>
+
+                        {/* SAP */}
+
+                        <td className="px-5 py-4">
+                          <span className="font-mono text-sm text-white/55">
+                            {user.sap_number ||
+                              '—'}
+                          </span>
+                        </td>
+
+                        {/* EQUIPMENT COUNT */}
+
+                        <td className="px-5 py-4 text-center">
+                          {(() => {
+                            const equipmentCount =
+                              getUserEquipmentCount(
+                                user.id
+                              );
+
+                            const equipmentStyle =
+                              getEquipmentCountStyle(
+                                equipmentCount
+                              );
+
+                            return (
+                              <div className="flex items-center justify-center">
+                                <span
+                                  className={`inline-flex h-8 min-w-8 items-center justify-center rounded-lg border px-2.5 text-sm font-semibold ${equipmentStyle.wrapper}`}
                                 >
-                                  <Eye className="h-4 w-4" />
-                                </Button>
+                                  {equipmentCount}
+                                </span>
+                              </div>
+                            );
+                          })()}
+                        </td>
 
-                                {isAdmin && (
-                                  <>
+                        {/* ROLE */}
+
+                        <td className="px-5 py-4">
+                          {user.role === 'admin' ? (
+                            <Badge className="border border-violet-500/20 bg-violet-500/10 text-violet-400">
+                              <ShieldCheck className="mr-1.5 h-3.5 w-3.5" />
+
+                              {isPT
+                                ? 'Administrador'
+                                : 'Administrator'}
+                            </Badge>
+                          ) : (
+                            <Badge className="border border-emerald-500/20 bg-emerald-500/10 text-emerald-400">
+                              <Eye className="mr-1.5 h-3.5 w-3.5" />
+
+                              {isPT
+                                ? 'Utilizador'
+                                : 'Viewer'}
+                            </Badge>
+                          )}
+                        </td>
+
+                        {/* ACTIONS */}
+
+                        <td className="px-5 py-4">
+                          <div className="flex justify-end gap-2">
+
+                            {/* VIEW USER */}
+
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              onClick={() =>
+                                openUserDetails(
+                                  user
+                                )
+                              }
+                              className="h-9 w-9 border-emerald-500/20 bg-emerald-500/5 text-emerald-400 transition-all hover:border-emerald-500/30 hover:bg-emerald-500/10 hover:text-emerald-300"
+                              title={
+                                isPT
+                                  ? 'Ver utilizador'
+                                  : 'View user'
+                              }
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+
+                            {/* ADMIN ACTIONS */}
+
+                            {isAdmin && (
+                              <>
                                 {/* EDIT */}
 
                                 <Button
                                   size="icon"
                                   variant="outline"
                                   onClick={() =>
-                                    openEditUserDialog(user)
+                                    openEditUserDialog(
+                                      user
+                                    )
                                   }
                                   className="h-9 w-9 border-blue-500/20 bg-blue-500/5 text-blue-400 transition-all hover:border-blue-500/30 hover:bg-blue-500/10 hover:text-blue-300"
                                   title={
@@ -1314,11 +1407,7 @@ const UsersPage = () => {
                                 >
                                   <Pencil className="h-4 w-4" />
                                 </Button>
-                                  </>
-                                )}
 
-                                {isAdmin && (
-                                  <>
                                 {/* ASSIGN EQUIPMENT */}
 
                                 <Button
@@ -1338,152 +1427,186 @@ const UsersPage = () => {
                                 >
                                   <Monitor className="h-4 w-4" />
                                 </Button>
-                                  </>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        )
-                      )
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  )
+                )}
+              </tbody>
+            </table>
+          </div>
 
-              {/* PAGINATION */}
+          {/* =================================================
+              PAGINATION
+              ================================================= */}
 
-              <div
-                className="flex flex-col gap-3 border-t border-white/[0.07] px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
+          <div className="flex flex-col gap-3 border-t border-white/[0.07] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+
+            <p className="text-xs text-white/35">
+              {filteredUsers.length === 0
+                ? '0'
+                : `${(currentPage - 1) * itemsPerPage + 1}-${Math.min(
+                    currentPage * itemsPerPage,
+                    filteredUsers.length
+                  )}`}{' '}
+
+              {isPT
+                ? `de ${filteredUsers.length} utilizadores`
+                : `of ${filteredUsers.length} users`}
+            </p>
+
+            <div className="flex items-center gap-2">
+
+              <Button
+                size="icon"
+                variant="outline"
+                disabled={
+                  currentPage <= 1
+                }
+                onClick={() =>
+                  setCurrentPage(
+                    (page) =>
+                      page - 1
+                  )
+                }
+                className="h-8 w-8 border-white/10 bg-white/[0.03] text-white/50 hover:bg-blue-500/10 hover:text-blue-400"
               >
-                <p className="text-xs text-white/35">
-                  {filteredUsers.length === 0
-                    ? '0'
-                    : `${(currentPage - 1) * itemsPerPage + 1}-${Math.min(
-                        currentPage * itemsPerPage,
-                        filteredUsers.length
-                      )}`}{' '}
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
 
-                  {isPT
-                    ? `de ${filteredUsers.length} utilizadores`
-                    : `of ${filteredUsers.length} users`}
-                </p>
+              <span className="min-w-[70px] text-center text-xs text-white/45">
+                {currentPage} / {totalPages}
+              </span>
 
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    disabled={
-                      currentPage <= 1
-                    }
-                    onClick={() =>
-                      setCurrentPage(
-                        (page) =>
-                          page - 1
-                      )
-                    }
-                    className="h-8 w-8 border-white/10 bg-white/[0.03] text-white/50 hover:bg-blue-500/10 hover:text-blue-400"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-
-                  <span
-                    className="min-w-[70px] text-center text-xs text-white/45"
-                  >
-                    {currentPage} / {totalPages}
-                  </span>
-
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    disabled={
-                      currentPage >=
-                      totalPages
-                    }
-                    onClick={() =>
-                      setCurrentPage(
-                        (page) =>
-                          page + 1
-                      )
-                    }
-                    className="h-8 w-8 border-white/10 bg-white/[0.03] text-white/50 hover:bg-blue-500/10 hover:text-blue-400"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
+              <Button
+                size="icon"
+                variant="outline"
+                disabled={
+                  currentPage >=
+                  totalPages
+                }
+                onClick={() =>
+                  setCurrentPage(
+                    (page) =>
+                      page + 1
+                  )
+                }
+                className="h-8 w-8 border-white/10 bg-white/[0.03] text-white/50 hover:bg-blue-500/10 hover:text-blue-400"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </div>
+          </div>
+        </div>
       </div>
 
       {/* =====================================================
-          EDIT USER DIALOG - ADMIN ONLY
-      ===================================================== */}
+          EDIT USER DIALOG
+          Apenas Admin pode abrir este diálogo.
+          ===================================================== */}
 
       {isAdmin && selectedUser && (
         <Dialog
           open={isEditUserDialogOpen}
-          onOpenChange={setIsEditUserDialogOpen}
+          onOpenChange={
+            setIsEditUserDialogOpen
+          }
         >
-          <DialogContent
-            className="max-h-[90vh] overflow-y-auto border-blue-500/20 bg-[#0D1730] text-white shadow-2xl sm:max-w-[700px]"
-          >
+          <DialogContent className="max-h-[90vh] overflow-y-auto border-blue-500/20 bg-[#0D1730] text-white shadow-2xl sm:max-w-[700px]">
             <DialogHeader>
               <DialogTitle className="text-white">
-                {isPT ? 'Editar utilizador' : 'Edit user'}
+                {isPT
+                  ? 'Editar utilizador'
+                  : 'Edit user'}
               </DialogTitle>
             </DialogHeader>
 
             <div className="space-y-5">
+
               <div className="grid gap-4 sm:grid-cols-2">
+
+                {/* FULL NAME */}
+
                 <div className="space-y-2 sm:col-span-2">
                   <label className="text-xs font-medium text-white/50">
-                    {isPT ? 'Nome completo' : 'Full name'}
+                    {isPT
+                      ? 'Nome completo'
+                      : 'Full name'}
                   </label>
 
                   <Input
-                    value={editUserForm.full_name}
+                    value={
+                      editUserForm.full_name
+                    }
                     onChange={(event) =>
-                      setEditUserForm((current) => ({
-                        ...current,
-                        full_name: event.target.value,
-                      }))
+                      setEditUserForm(
+                        (current) => ({
+                          ...current,
+                          full_name:
+                            event.target.value,
+                        })
+                      )
                     }
                     className="border-white/10 bg-[#0A1328] text-white placeholder:text-white/25 focus:border-blue-500/50 focus:ring-blue-500/20"
                   />
                 </div>
 
+                {/* DEPARTMENT */}
+
                 <div className="space-y-2">
                   <label className="text-xs font-medium text-white/50">
-                    {isPT ? 'Departamento' : 'Department'}
+                    {isPT
+                      ? 'Departamento'
+                      : 'Department'}
                   </label>
 
                   <Input
-                    value={editUserForm.department}
+                    value={
+                      editUserForm.department
+                    }
                     onChange={(event) =>
-                      setEditUserForm((current) => ({
-                        ...current,
-                        department: event.target.value,
-                      }))
+                      setEditUserForm(
+                        (current) => ({
+                          ...current,
+                          department:
+                            event.target.value,
+                        })
+                      )
                     }
                     className="border-white/10 bg-[#0A1328] text-white focus:border-blue-500/50 focus:ring-blue-500/20"
                   />
                 </div>
 
+                {/* POSITION */}
+
                 <div className="space-y-2">
                   <label className="text-xs font-medium text-white/50">
-                    {isPT ? 'Cargo' : 'Position'}
+                    {isPT
+                      ? 'Cargo'
+                      : 'Position'}
                   </label>
 
                   <Input
-                    value={editUserForm.position}
+                    value={
+                      editUserForm.position
+                    }
                     onChange={(event) =>
-                      setEditUserForm((current) => ({
-                        ...current,
-                        position: event.target.value,
-                      }))
+                      setEditUserForm(
+                        (current) => ({
+                          ...current,
+                          position:
+                            event.target.value,
+                        })
+                      )
                     }
                     className="border-white/10 bg-[#0A1328] text-white focus:border-blue-500/50 focus:ring-blue-500/20"
                   />
                 </div>
+
+                {/* SAP */}
 
                 <div className="space-y-2">
                   <label className="text-xs font-medium text-white/50">
@@ -1491,42 +1614,53 @@ const UsersPage = () => {
                   </label>
 
                   <Input
-                    value={editUserForm.sap_number}
+                    value={
+                      editUserForm.sap_number
+                    }
                     onChange={(event) =>
-                      setEditUserForm((current) => ({
-                        ...current,
-                        sap_number: event.target.value,
-                      }))
+                      setEditUserForm(
+                        (current) => ({
+                          ...current,
+                          sap_number:
+                            event.target.value,
+                        })
+                      )
                     }
                     className="border-white/10 bg-[#0A1328] font-mono text-white focus:border-blue-500/50 focus:ring-blue-500/20"
                   />
                 </div>
 
+                {/* ROLE */}
+
                 <div className="space-y-2">
                   <label className="text-xs font-medium text-white/50">
-                    {isPT ? 'Função' : 'Role'}
+                    {isPT
+                      ? 'Função'
+                      : 'Role'}
                   </label>
 
                   <Select
-                    value={editUserForm.role}
+                    value={
+                      editUserForm.role
+                    }
                     onValueChange={(value) =>
-                      setEditUserForm((current) => ({
-                        ...current,
-                        role: value,
-                      }))
+                      setEditUserForm(
+                        (current) => ({
+                          ...current,
+                          role: value,
+                        })
+                      )
                     }
                   >
-                    <SelectTrigger
-                      className="border-white/10 bg-[#0A1328] text-white"
-                    >
+                    <SelectTrigger className="border-white/10 bg-[#0A1328] text-white">
                       <SelectValue />
                     </SelectTrigger>
 
-                    <SelectContent
-                      className="border-blue-500/20 bg-[#0D1730] text-white"
-                    >
+                    <SelectContent className="border-blue-500/20 bg-[#0D1730] text-white">
                       <SelectItem value="viewer">
-                        {isPT ? 'Utilizador' : 'Viewer'}
+                        {isPT
+                          ? 'Utilizador'
+                          : 'Viewer'}
                       </SelectItem>
 
                       <SelectItem value="admin">
@@ -1538,24 +1672,33 @@ const UsersPage = () => {
                   </Select>
                 </div>
 
+                {/* MANAGER */}
+
                 <div className="space-y-2 sm:col-span-2">
                   <label className="text-xs font-medium text-white/50">
-                    {isPT ? 'Superior' : 'Manager'}
+                    {isPT
+                      ? 'Superior'
+                      : 'Manager'}
                   </label>
 
                   <Select
-                    value={editUserForm.manager_id || 'none'}
+                    value={
+                      editUserForm.manager_id ||
+                      'none'
+                    }
                     onValueChange={(value) =>
-                      setEditUserForm((current) => ({
-                        ...current,
-                        manager_id:
-                          value === 'none' ? '' : value,
-                      }))
+                      setEditUserForm(
+                        (current) => ({
+                          ...current,
+                          manager_id:
+                            value === 'none'
+                              ? ''
+                              : value,
+                        })
+                      )
                     }
                   >
-                    <SelectTrigger
-                      className="border-white/10 bg-[#0A1328] text-white"
-                    >
+                    <SelectTrigger className="border-white/10 bg-[#0A1328] text-white">
                       <SelectValue
                         placeholder={
                           isPT
@@ -1565,9 +1708,8 @@ const UsersPage = () => {
                       />
                     </SelectTrigger>
 
-                    <SelectContent
-                      className="max-h-[280px] border-blue-500/20 bg-[#0D1730] text-white"
-                    >
+                    <SelectContent className="max-h-[280px] border-blue-500/20 bg-[#0D1730] text-white">
+
                       <SelectItem value="none">
                         {isPT
                           ? 'Sem superior'
@@ -1577,41 +1719,51 @@ const UsersPage = () => {
                       {users
                         .filter(
                           (user) =>
-                            user.id !== selectedUser?.id
+                            user.id !==
+                            selectedUser?.id
                         )
-                        .map((user) => (
-                          <SelectItem
-                            key={user.id}
-                            value={user.id}
-                          >
-                            {user.full_name ||
-                              user.email ||
-                              user.id}
-                          </SelectItem>
-                        ))}
+                        .map(
+                          (user) => (
+                            <SelectItem
+                              key={user.id}
+                              value={user.id}
+                            >
+                              {user.full_name ||
+                                user.email ||
+                                user.id}
+                            </SelectItem>
+                          )
+                        )}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
-              <div
-                className="flex justify-end gap-2 border-t border-white/[0.07] pt-4"
-              >
+              {/* ACTIONS */}
+
+              <div className="flex justify-end gap-2 border-t border-white/[0.07] pt-4">
+
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() =>
-                    setIsEditUserDialogOpen(false)
+                    setIsEditUserDialogOpen(
+                      false
+                    )
                   }
                   disabled={savingUser}
                   className="border-white/10 bg-white/[0.03] text-white/60 hover:bg-white/[0.06] hover:text-white"
                 >
-                  {isPT ? 'Cancelar' : 'Cancel'}
+                  {isPT
+                    ? 'Cancelar'
+                    : 'Cancel'}
                 </Button>
 
                 <Button
                   type="button"
-                  onClick={handleEditUser}
+                  onClick={
+                    handleEditUser
+                  }
                   disabled={savingUser}
                   className="bg-blue-600 text-white shadow-lg shadow-blue-600/20 hover:bg-blue-500"
                 >
@@ -1631,7 +1783,7 @@ const UsersPage = () => {
 
       {/* =====================================================
           ADD USER DIALOG
-      ===================================================== */}
+          ===================================================== */}
 
       <Dialog
         open={isAddUserDialogOpen}
@@ -1639,9 +1791,7 @@ const UsersPage = () => {
           setIsAddUserDialogOpen
         }
       >
-        <DialogContent
-          className="max-h-[90vh] overflow-y-auto border-blue-500/20 bg-[#0D1730] text-white shadow-2xl sm:max-w-[650px]"
-        >
+        <DialogContent className="max-h-[90vh] overflow-y-auto border-blue-500/20 bg-[#0D1730] text-white shadow-2xl sm:max-w-[650px]">
           <DialogHeader>
             <DialogTitle className="text-white">
               {isPT
@@ -1660,7 +1810,7 @@ const UsersPage = () => {
 
       {/* =====================================================
           ASSIGN EQUIPMENT DIALOG
-      ===================================================== */}
+          ===================================================== */}
 
       <Dialog
         open={
@@ -1670,9 +1820,7 @@ const UsersPage = () => {
           setIsAssignEquipmentDialogOpen
         }
       >
-        <DialogContent
-          className="max-h-[90vh] overflow-y-auto border-amber-500/20 bg-[#0D1730] text-white shadow-2xl sm:max-w-[650px]"
-        >
+        <DialogContent className="max-h-[90vh] overflow-y-auto border-amber-500/20 bg-[#0D1730] text-white shadow-2xl sm:max-w-[650px]">
           <DialogHeader>
             <DialogTitle className="text-white">
               {isPT
@@ -1695,7 +1843,7 @@ const UsersPage = () => {
 
       {/* =====================================================
           USER DETAILS DIALOG
-      ===================================================== */}
+          ===================================================== */}
 
       <Dialog
         open={userDetailsOpen}
@@ -1703,9 +1851,7 @@ const UsersPage = () => {
           setUserDetailsOpen
         }
       >
-        <DialogContent
-          className="max-h-[85vh] overflow-y-auto border-emerald-500/20 bg-[#0D1730] text-white shadow-2xl sm:max-w-[750px]"
-        >
+        <DialogContent className="max-h-[85vh] overflow-y-auto border-emerald-500/20 bg-[#0D1730] text-white shadow-2xl sm:max-w-[750px]">
           {selectedUser && (
             <>
               <DialogHeader>
@@ -1718,13 +1864,10 @@ const UsersPage = () => {
 
               {/* USER HEADER */}
 
-              <div
-                className="rounded-xl border border-white/[0.07] bg-[#0A1328] p-5"
-              >
+              <div className="rounded-xl border border-white/[0.07] bg-[#0A1328] p-5">
                 <div className="flex items-center gap-4">
-                  <div
-                    className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-lg font-bold text-emerald-400"
-                  >
+
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-lg font-bold text-emerald-400">
                     {getInitials(
                       selectedUser.full_name
                     )}
@@ -1747,9 +1890,7 @@ const UsersPage = () => {
                   <div className="ml-auto">
                     {selectedUser.role ===
                     'admin' ? (
-                      <Badge
-                        className="border border-violet-500/20 bg-violet-500/10 text-violet-400"
-                      >
+                      <Badge className="border border-violet-500/20 bg-violet-500/10 text-violet-400">
                         <ShieldCheck className="mr-1.5 h-3.5 w-3.5" />
 
                         {isPT
@@ -1757,9 +1898,7 @@ const UsersPage = () => {
                           : 'Administrator'}
                       </Badge>
                     ) : (
-                      <Badge
-                        className="border border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
-                      >
+                      <Badge className="border border-emerald-500/20 bg-emerald-500/10 text-emerald-400">
                         <Eye className="mr-1.5 h-3.5 w-3.5" />
 
                         {isPT
@@ -1773,12 +1912,9 @@ const UsersPage = () => {
 
               {/* USER INFO */}
 
-              <div
-                className="mt-5 grid gap-3 sm:grid-cols-2"
-              >
-                <div
-                  className="rounded-lg border border-white/[0.07] bg-[#0A1328] p-4"
-                >
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+
+                <div className="rounded-lg border border-white/[0.07] bg-[#0A1328] p-4">
                   <p className="text-xs text-white/35">
                     {isPT
                       ? 'Departamento'
@@ -1791,9 +1927,7 @@ const UsersPage = () => {
                   </p>
                 </div>
 
-                <div
-                  className="rounded-lg border border-white/[0.07] bg-[#0A1328] p-4"
-                >
+                <div className="rounded-lg border border-white/[0.07] bg-[#0A1328] p-4">
                   <p className="text-xs text-white/35">
                     {isPT
                       ? 'Cargo'
@@ -1806,9 +1940,7 @@ const UsersPage = () => {
                   </p>
                 </div>
 
-                <div
-                  className="rounded-lg border border-white/[0.07] bg-[#0A1328] p-4"
-                >
+                <div className="rounded-lg border border-white/[0.07] bg-[#0A1328] p-4">
                   <p className="text-xs text-white/35">
                     SAP
                   </p>
@@ -1819,9 +1951,7 @@ const UsersPage = () => {
                   </p>
                 </div>
 
-                <div
-                  className="rounded-lg border border-white/[0.07] bg-[#0A1328] p-4"
-                >
+                <div className="rounded-lg border border-white/[0.07] bg-[#0A1328] p-4">
                   <p className="text-xs text-white/35">
                     ID
                   </p>
@@ -1832,12 +1962,13 @@ const UsersPage = () => {
                 </div>
               </div>
 
-              {/* EQUIPMENT */}
+              {/* =================================================
+                  EQUIPMENT
+                  ================================================= */}
 
               <div className="mt-6">
-                <div
-                  className="mb-3 flex items-center justify-between"
-                >
+
+                <div className="mb-3 flex items-center justify-between">
                   <div>
                     <h3 className="font-semibold text-white">
                       {isPT
@@ -1852,9 +1983,7 @@ const UsersPage = () => {
                     </p>
                   </div>
 
-                  <span
-                    className="rounded-full border border-blue-500/20 bg-blue-500/10 px-2.5 py-1 text-xs font-medium text-blue-400"
-                  >
+                  <span className="rounded-full border border-blue-500/20 bg-blue-500/10 px-2.5 py-1 text-xs font-medium text-blue-400">
                     {
                       selectedUserEquipment.length
                     }
@@ -1863,12 +1992,9 @@ const UsersPage = () => {
 
                 {selectedUserEquipment.length ===
                 0 ? (
-                  <div
-                    className="rounded-lg border border-dashed border-white/10 bg-[#0A1328] py-10 text-center"
-                  >
-                    <Package
-                      className="mx-auto mb-3 h-8 w-8 text-white/15"
-                    />
+                  <div className="rounded-lg border border-dashed border-white/10 bg-[#0A1328] py-10 text-center">
+
+                    <Package className="mx-auto mb-3 h-8 w-8 text-white/15" />
 
                     <p className="text-sm text-white/35">
                       {isPT
@@ -1884,18 +2010,19 @@ const UsersPage = () => {
                             selectedUser.id
                           )
                         }
-                      className="mt-4 border-amber-500/20 bg-amber-500/5 text-amber-400 hover:border-amber-500/30 hover:bg-amber-500/10 hover:text-amber-300"
-                    >
-                      <Monitor className="mr-2 h-4 w-4" />
+                        className="mt-4 border-amber-500/20 bg-amber-500/5 text-amber-400 hover:border-amber-500/30 hover:bg-amber-500/10 hover:text-amber-300"
+                      >
+                        <Monitor className="mr-2 h-4 w-4" />
 
-                      {isPT
-                        ? 'Atribuir equipamento'
-                        : 'Assign equipment'}
+                        {isPT
+                          ? 'Atribuir equipamento'
+                          : 'Assign equipment'}
                       </Button>
                     )}
                   </div>
                 ) : (
                   <div className="space-y-2">
+
                     {selectedUserEquipment.map(
                       (equipment) => {
                         const EquipmentIcon =
@@ -1916,25 +2043,28 @@ const UsersPage = () => {
                             key={equipment.id}
                             className="flex items-center gap-3 rounded-lg border border-white/[0.07] bg-[#0A1328] p-3 transition hover:border-blue-500/20"
                           >
-                            <div
-                              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-500/10"
-                            >
+
+                            {/* EQUIPMENT ICON */}
+
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-500/10">
                               <EquipmentIcon className="h-5 w-5 text-blue-400" />
                             </div>
+
+                            {/* EQUIPMENT INFORMATION */}
 
                             <div className="min-w-0 flex-1">
                               <p className="truncate text-sm font-medium text-white">
                                 {equipment.brands?.name
                                   ? `${equipment.brands.name} `
                                   : ''}
+
                                 {equipment.model ||
                                   equipment.name ||
                                   '—'}
                               </p>
 
-                              <div
-                                className="mt-1 flex flex-wrap items-center gap-2 text-xs text-white/35"
-                              >
+                              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-white/35">
+
                                 <span>
                                   S/N:{' '}
                                   {equipment.serial_number ||
@@ -1943,7 +2073,9 @@ const UsersPage = () => {
 
                                 {equipment.asset_tag && (
                                   <>
-                                    <span>•</span>
+                                    <span>
+                                      •
+                                    </span>
 
                                     <span>
                                       {
@@ -1955,7 +2087,9 @@ const UsersPage = () => {
 
                                 {equipment.locations?.name && (
                                   <>
-                                    <span>•</span>
+                                    <span>
+                                      •
+                                    </span>
 
                                     <span className="flex items-center gap-1">
                                       <MapPin className="h-3 w-3" />
@@ -1971,18 +2105,17 @@ const UsersPage = () => {
                               </div>
                             </div>
 
+                            {/* STATUS */}
+
                             <Badge
-                              className={`
-                                hidden
-                                border
-                                sm:flex
-                                ${statusInfo.className}
-                              `}
+                              className={`hidden border sm:flex ${statusInfo.className}`}
                             >
                               <StatusIcon className="mr-1.5 h-3.5 w-3.5" />
 
                               {statusInfo.label}
                             </Badge>
+
+                            {/* VIEW EQUIPMENT */}
 
                             <Button
                               size="icon"
@@ -2001,6 +2134,8 @@ const UsersPage = () => {
                                 <Eye className="h-4 w-4" />
                               </Link>
                             </Button>
+
+                            {/* EDIT EQUIPMENT */}
 
                             {isAdmin && (
                               <Button

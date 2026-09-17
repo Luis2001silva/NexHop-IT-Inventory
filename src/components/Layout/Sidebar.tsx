@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { useLanguage } from "@/context/LanguageContext";
-import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -20,15 +20,22 @@ import {
   Settings,
   UserCircle,
   CircleHelp,
-  Menu,
   ChevronRight,
   ChevronLeft,
 } from "lucide-react";
+
+/* =========================================================
+   SIDEBAR PROPS
+   ========================================================= */
 
 interface SidebarProps {
   collapsed: boolean;
   toggleSidebar: () => void;
 }
+
+/* =========================================================
+   NAVIGATION ITEM
+   ========================================================= */
 
 interface NavItem {
   path: string;
@@ -37,6 +44,10 @@ interface NavItem {
   updating?: boolean;
 }
 
+/* =========================================================
+   NAVIGATION SECTION
+   ========================================================= */
+
 interface NavSection {
   title: string;
   items: NavItem[];
@@ -44,6 +55,8 @@ interface NavSection {
 
 /* =========================================================
    LOADING CIRCLE
+   Mostra que uma determinada área ainda está em
+   desenvolvimento.
    ========================================================= */
 
 const LoadingCircle = ({
@@ -71,17 +84,61 @@ const LoadingCircle = ({
   );
 };
 
-export const Sidebar = ({ collapsed, toggleSidebar }: SidebarProps) => {
+/* =========================================================
+   SIDEBAR
+   ========================================================= */
+
+export const Sidebar = ({
+  collapsed,
+  toggleSidebar,
+}: SidebarProps) => {
   const { language } = useLanguage();
-  const { isAdmin } = useAuth();
   const { theme } = useTheme();
+  const { role, loading: roleLoading } = useUserRole();
   const location = useLocation();
 
   const isLight = theme === "light";
 
+  /* =======================================================
+     ROLE PERMISSIONS
+
+     O role vem diretamente de:
+
+     profiles.role
+
+     através do hook useUserRole().
+
+     Possíveis valores:
+     - admin
+     - viewer
+     - user
+     ======================================================= */
+
+  const isAdmin = role === "admin";
+  const isViewer = role === "viewer";
+  const isUser = role === "user";
+
+  /* =======================================================
+     NAVIGATION
+
+     O menu é construído de acordo com o role.
+
+     Neste momento:
+     - Admin vê o menu completo.
+     - Viewer vê o painel IT sem Users.
+     - User ainda não tem o My Portal implementado.
+
+     A parte de User será tratada mais à frente.
+     ======================================================= */
+
   const sections: NavSection[] = [
+    /* =====================================================
+       PRINCIPAL
+       ===================================================== */
+
     {
       title: language === "pt" ? "PRINCIPAL" : "MAIN",
+
       items: [
         {
           path: "/dashboard",
@@ -89,77 +146,119 @@ export const Sidebar = ({ collapsed, toggleSidebar }: SidebarProps) => {
           icon: <LayoutDashboard size={18} />,
           updating: true,
         },
+
         {
           path: "/equipment",
           label: language === "pt" ? "Equipamentos" : "Equipment",
           icon: <Monitor size={18} />,
-          // updating: true,
         },
+
+        /* -------------------------------------------------
+           USERS
+
+           Apenas Administradores podem gerir utilizadores.
+           ------------------------------------------------- */
+
         ...(isAdmin
           ? [
               {
                 path: "/users",
-                label: language === "pt" ? "Utilizadores" : "Users",
+                label:
+                  language === "pt"
+                    ? "Utilizadores"
+                    : "Users",
                 icon: <Users size={18} />,
-                // updating: true,
               },
             ]
           : []),
       ],
     },
 
+    /* =====================================================
+       GESTÃO
+       ===================================================== */
+
     {
       title: language === "pt" ? "GESTÃO" : "MANAGEMENT",
+
       items: [
         {
           path: "/invoices",
           label: language === "pt" ? "Faturas" : "Invoices",
           icon: <FileText size={18} />,
           updating: true,
-          // updating: true,
         },
+
         {
           path: "/warranties",
-          label: language === "pt" ? "Garantias" : "Warranties",
+          label:
+            language === "pt"
+              ? "Garantias"
+              : "Warranties",
           icon: <ShieldCheck size={18} />,
-          // updating: true,
         },
+
         {
           path: "/reservations",
-          label: language === "pt" ? "Reservas" : "Reservations",
+          label:
+            language === "pt"
+              ? "Reservas"
+              : "Reservations",
           icon: <CalendarDays size={18} />,
-          // updating: true,
         },
+
         {
           path: "/documents",
-          label: language === "pt" ? "Documentos" : "Documents",
+          label:
+            language === "pt"
+              ? "Documentos"
+              : "Documents",
           icon: <FolderOpen size={18} />,
           updating: true,
         },
+
         {
           path: "/hierarchy",
-          label: language === "pt" ? "Hierarquia" : "Hierarchy",
+          label:
+            language === "pt"
+              ? "Hierarquia"
+              : "Hierarchy",
           icon: <Network size={18} />,
-          // updating: true,
         },
       ],
     },
 
+    /* =====================================================
+       MONITORIZAÇÃO
+       ===================================================== */
+
     {
-      title: language === "pt" ? "MONITORIZAÇÃO" : "MONITORING",
+      title:
+        language === "pt"
+          ? "MONITORIZAÇÃO"
+          : "MONITORING",
+
       items: [
         {
           path: "/alerts",
-          label: language === "pt" ? "Alertas" : "Alerts",
+          label:
+            language === "pt"
+              ? "Alertas"
+              : "Alerts",
           icon: <TriangleAlert size={18} />,
           updating: true,
         },
+
         {
           path: "/reports",
-          label: language === "pt" ? "Relatórios" : "Reports",
+          label:
+            language === "pt"
+              ? "Relatórios"
+              : "Reports",
           icon: <ChartNoAxesCombined size={18} />,
           updating: true,
         },
+
         {
           path: "/logs",
           label: "Logs",
@@ -169,30 +268,52 @@ export const Sidebar = ({ collapsed, toggleSidebar }: SidebarProps) => {
       ],
     },
 
+    /* =====================================================
+       SISTEMA
+       ===================================================== */
+
     {
-      title: language === "pt" ? "SISTEMA" : "SYSTEM",
+      title:
+        language === "pt"
+          ? "SISTEMA"
+          : "SYSTEM",
+
       items: [
         {
           path: "/settings",
-          label: language === "pt" ? "Definições" : "Settings",
+          label:
+            language === "pt"
+              ? "Definições"
+              : "Settings",
           icon: <Settings size={18} />,
-          // updating: true,
         },
+
         {
           path: "/profile",
-          label: language === "pt" ? "Perfil" : "Profile",
+          label:
+            language === "pt"
+              ? "Perfil"
+              : "Profile",
           icon: <UserCircle size={18} />,
-          // updating: true,
         },
+
         {
           path: "/support",
-          label: language === "pt" ? "Suporte" : "Support",
+          label:
+            language === "pt"
+              ? "Suporte"
+              : "Support",
           icon: <CircleHelp size={18} />,
-          // updating: true,
         },
       ],
     },
   ];
+
+  /* =========================================================
+     ACTIVE ROUTE
+
+     Verifica qual é a página atualmente aberta.
+     ========================================================= */
 
   const isActive = (path: string) => {
     if (path === "/dashboard") {
@@ -202,8 +323,57 @@ export const Sidebar = ({ collapsed, toggleSidebar }: SidebarProps) => {
     return location.pathname.startsWith(path);
   };
 
+  /* =========================================================
+     ROLE LOADING
+
+     Enquanto o role ainda está a ser carregado, não
+     construímos o menu de permissões.
+
+     Isto evita o problema:
+
+     Admin -> aparece Viewer -> depois muda para Admin
+     ========================================================= */
+
+  if (roleLoading) {
+    return (
+      <aside
+        className={cn(
+          "h-screen flex flex-col shrink-0",
+          isLight
+            ? "bg-white text-slate-900 border-r border-slate-200"
+            : "bg-[#0B1120] text-white border-r border-white/[0.06]",
+          collapsed ? "w-[72px]" : "w-[250px]",
+        )}
+      >
+        <div
+          className={cn(
+            "h-[72px] flex items-center border-b",
+            isLight
+              ? "border-slate-200"
+              : "border-white/[0.06]",
+            collapsed
+              ? "justify-center px-2"
+              : "justify-between px-5",
+          )}
+        />
+
+        <div className="flex-1 flex items-center justify-center">
+          <LoadingCircle size={18} isLight={isLight} />
+        </div>
+      </aside>
+    );
+  }
+
+  /* =========================================================
+     SIDEBAR UI
+     ========================================================= */
+
   return (
     <>
+      {/* ===================================================
+          SIDEBAR SPINNER ANIMATION
+          =================================================== */}
+
       <style>
         {`
           @keyframes sidebarCircleRotate {
@@ -228,16 +398,30 @@ export const Sidebar = ({ collapsed, toggleSidebar }: SidebarProps) => {
           collapsed ? "w-[72px]" : "w-[250px]",
         )}
       >
-        {/* HEADER */}
+        {/* =================================================
+            HEADER
+            ================================================= */}
+
         <div
           className={cn(
             "h-[72px] flex items-center border-b",
-            isLight ? "border-slate-200" : "border-white/[0.06]",
-            collapsed ? "justify-center px-2" : "justify-between px-5",
+            isLight
+              ? "border-slate-200"
+              : "border-white/[0.06]",
+            collapsed
+              ? "justify-center px-2"
+              : "justify-between px-5",
           )}
         >
+          {/* -------------------------------------------------
+              LOGO SIDEBAR ABERTA
+              ------------------------------------------------- */}
+
           {!collapsed && (
-            <Link to="/dashboard" className="flex items-center min-w-0">
+            <Link
+              to="/dashboard"
+              className="flex items-center min-w-0"
+            >
               <img
                 src={
                   isLight
@@ -250,8 +434,15 @@ export const Sidebar = ({ collapsed, toggleSidebar }: SidebarProps) => {
             </Link>
           )}
 
+          {/* -------------------------------------------------
+              LOGO SIDEBAR FECHADA
+              ------------------------------------------------- */}
+
           {collapsed && (
-            <Link to="/dashboard" className="flex items-center justify-center">
+            <Link
+              to="/dashboard"
+              className="flex items-center justify-center"
+            >
               <img
                 src={
                   isLight
@@ -264,6 +455,10 @@ export const Sidebar = ({ collapsed, toggleSidebar }: SidebarProps) => {
             </Link>
           )}
 
+          {/* -------------------------------------------------
+              BOTÃO ABRIR / FECHAR SIDEBAR
+              ------------------------------------------------- */}
+
           <Button
             variant="ghost"
             size="icon"
@@ -275,11 +470,18 @@ export const Sidebar = ({ collapsed, toggleSidebar }: SidebarProps) => {
                 : "text-white/60 hover:text-white hover:bg-white/[0.05]",
             )}
           >
-            {collapsed ? <ChevronRight size={19} /> : <ChevronLeft size={19} />}
+            {collapsed ? (
+              <ChevronRight size={19} />
+            ) : (
+              <ChevronLeft size={19} />
+            )}
           </Button>
         </div>
 
-        {/* NAVIGATION */}
+        {/* =================================================
+            NAVIGATION
+            ================================================= */}
+
         <nav
           className="nexa-sidebar-scroll flex-1 overflow-y-auto px-3 py-5"
           style={{
@@ -290,16 +492,26 @@ export const Sidebar = ({ collapsed, toggleSidebar }: SidebarProps) => {
           <div className="space-y-6">
             {sections.map((section) => (
               <div key={section.title}>
+                {/* -------------------------------------------
+                    SECTION TITLE
+                    ------------------------------------------- */}
+
                 {!collapsed && (
                   <div
                     className={cn(
                       "px-3 mb-2 text-[10px] font-semibold tracking-[0.12em]",
-                      isLight ? "text-slate-400" : "text-white/35",
+                      isLight
+                        ? "text-slate-400"
+                        : "text-white/35",
                     )}
                   >
                     {section.title}
                   </div>
                 )}
+
+                {/* -------------------------------------------
+                    SECTION ITEMS
+                    ------------------------------------------- */}
 
                 <div className="space-y-1">
                   {section.items.map((item) => {
@@ -309,12 +521,18 @@ export const Sidebar = ({ collapsed, toggleSidebar }: SidebarProps) => {
                       <Link
                         key={item.path}
                         to={item.path}
-                        title={collapsed ? item.label : undefined}
+                        title={
+                          collapsed
+                            ? item.label
+                            : undefined
+                        }
                         className={cn(
                           "group relative flex items-center h-10 rounded-lg",
                           "transition-all duration-200",
 
-                          collapsed ? "justify-center px-0" : "px-3 gap-3",
+                          collapsed
+                            ? "justify-center px-0"
+                            : "px-3 gap-3",
 
                           active
                             ? isLight
@@ -325,6 +543,10 @@ export const Sidebar = ({ collapsed, toggleSidebar }: SidebarProps) => {
                               : "text-white/60 hover:text-white hover:bg-white/[0.04]",
                         )}
                       >
+                        {/* -------------------------------------
+                            ACTIVE INDICATOR
+                            ------------------------------------- */}
+
                         {active && (
                           <span
                             className={cn(
@@ -335,17 +557,28 @@ export const Sidebar = ({ collapsed, toggleSidebar }: SidebarProps) => {
                           />
                         )}
 
-                        {/* ÍCONE */}
-                        <span className="shrink-0">{item.icon}</span>
+                        {/* -------------------------------------
+                            ICON
+                            ------------------------------------- */}
 
-                        {/* NOME */}
+                        <span className="shrink-0">
+                          {item.icon}
+                        </span>
+
+                        {/* -------------------------------------
+                            LABEL
+                            ------------------------------------- */}
+
                         {!collapsed && (
                           <span className="text-[13px] font-medium truncate">
                             {item.label}
                           </span>
                         )}
 
-                        {/* LOADING NO CANTO DIREITO */}
+                        {/* -------------------------------------
+                            DEVELOPMENT INDICATOR
+                            ------------------------------------- */}
+
                         {!collapsed && item.updating && (
                           <span
                             className="ml-auto shrink-0 flex items-center justify-center"
@@ -355,7 +588,10 @@ export const Sidebar = ({ collapsed, toggleSidebar }: SidebarProps) => {
                                 : "In development"
                             }
                           >
-                            <LoadingCircle size={16} isLight={isLight} />
+                            <LoadingCircle
+                              size={16}
+                              isLight={isLight}
+                            />
                           </span>
                         )}
                       </Link>
