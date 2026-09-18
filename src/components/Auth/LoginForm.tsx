@@ -3,6 +3,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
 import {
   Eye,
   EyeOff,
@@ -32,13 +33,27 @@ const LoginForm = () => {
       const success = await login(email, password);
 
       if (success) {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user?.id)
+          .single();
+
         toast.success(
           isPT
             ? 'Login efetuado com sucesso!'
             : 'Login successful!'
         );
 
-        navigate('/dashboard', { replace: true });
+        if (profile?.role === 'user') {
+          navigate('/portal', { replace: true });
+        } else {
+          navigate('/dashboard', { replace: true });
+        }
       } else {
         toast.error(
           isPT

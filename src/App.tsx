@@ -32,6 +32,8 @@ import UsersPage from "@/pages/UsersPage";
 import WarrantyPage from "@/pages/WarrantyPage";
 import Forbidden from "@/pages/Forbidden";
 
+import MyPortal from "@/pages/MyPortal";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -102,8 +104,7 @@ const App = () => (
 
                   {/* -------------------------------------------------
                      ÁREAS PESSOAIS
-                     Admin + Viewer por enquanto.
-                     Mais tarde o User terá o seu próprio portal.
+                     Admin + Viewer
                      ------------------------------------------------- */}
 
                   <Route path="profile" element={<ProfilePage />} />
@@ -116,6 +117,16 @@ const App = () => (
                   <Route path="500" element={<ServerError />} />
 
                 </Route>
+              </Route>
+
+              {/* =====================================================
+                 USER PORTAL
+                 Layout independente do painel IT.
+                 Apenas utilizadores com role "user".
+                 ===================================================== */}
+
+              <Route element={<ProtectedRoute allowedRoles={["user"]} />}>
+                <Route path="/portal/*" element={<MyPortal />} />
               </Route>
 
               {/* =====================================================
