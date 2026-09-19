@@ -1,153 +1,216 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
-import { ThemeProvider } from "@/context/ThemeContext";
-import { LanguageProvider } from "@/context/LanguageContext";
-import { ProtectedRoute } from "@/components/Auth/ProtectedRoute";
+import { AuthProvider } from "./context/AuthContext";
+import { LanguageProvider } from "./context/LanguageContext";
+import { ThemeProvider } from "./context/ThemeContext";
 
-import AppLayout from "@/components/Layout/AppLayout";
+import { ProtectedRoute } from "./components/Auth/ProtectedRoute";
+import AppLayout from "./components/Layout/AppLayout";
 
-import AlertsPage from "@/pages/AlertsPage";
-import ServerError from "@/pages/ServerError";
-import CreateAccountPage from "@/pages/CreateAccountPage";
-import Dashboard from "@/pages/Dashboard";
-import DocumentsPage from "@/pages/DocumentsPage";
-import EquipmentPage from "@/pages/EquipmentPage";
-import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
-import HierarchyPage from "@/pages/HierarchyPage";
-import HomePage from "@/pages/HomePage";
-import LoginPage from "@/pages/LoginPage";
-import LogsPage from "@/pages/LogsPage";
-import NotFound from "@/pages/NotFound";
-import InvoicePage from "@/pages/InvoicePage";
-import ProfilePage from "@/pages/ProfilePage";
-import ReportsPage from "@/pages/ReportsPage";
-import ReservationsPage from "@/pages/ReservationsPage";
-import SupportPage from "@/pages/SupportPage";
-import SettingsPage from "@/pages/SettingsPage";
-import UsersPage from "@/pages/UsersPage";
-import WarrantyPage from "@/pages/WarrantyPage";
-import Forbidden from "@/pages/Forbidden";
+import LoginPage from "./pages/LoginPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import CreateAccountPage from "./pages/CreateAccountPage";
 
-import MyPortal from "@/pages/MyPortal";
+import DashboardPage from "./pages/Dashboard";
+import EquipmentPage from "./pages/EquipmentPage";
+import UsersPage from "./pages/UsersPage";
+import DepartmentsPage from "./pages/HierarchyPage";
+import InvoicesPage from "./pages/InvoicePage";
+import WarrantiesPage from "./pages/WarrantyPage";
+import ReservationsPage from "./pages/ReservationsPage";
+import DocumentsPage from "./pages/DocumentsPage";
+import HierarchyPage from "./pages/HierarchyPage";
+import AlertsPage from "./pages/AlertsPage";
+import ReportsPage from "./pages/ReportsPage";
+import LogsPage from "./pages/LogsPage";
+import SettingsPage from "./pages/SettingsPage";
+import ProfilePage from "./pages/ProfilePage";
+import SupportPage from "./pages/SupportPage";
 
-const queryClient = new QueryClient();
+import MyPortalPage from "./pages/MyPortal";
+import PasswordResetRequestsPage from "./pages/PasswordResetRequestsPage";
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider>
-      <LanguageProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-
-          <BrowserRouter>
+function App() {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <LanguageProvider>
+          <ThemeProvider>
             <Routes>
+              {/* ========================================
+                  ROTAS PÚBLICAS
+              ======================================== */}
 
-              {/* =====================================================
-                 PUBLIC
-                 Páginas que não precisam de autenticação.
-                 ===================================================== */}
+              <Route
+                path="/"
+                element={<Navigate to="/login" replace />}
+              />
 
-              <Route path="/" element={<HomePage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-              <Route path="/create-account" element={<CreateAccountPage />} />
+              <Route
+                path="/login"
+                element={<LoginPage />}
+              />
 
-              {/* =====================================================
-                 IT PANEL
-                 Admin e Viewer podem entrar no painel IT.
-                 ===================================================== */}
+              <Route
+                path="/forgot-password"
+                element={<ForgotPasswordPage />}
+              />
 
-              <Route element={<ProtectedRoute allowedRoles={["admin", "viewer"]} />}>
-                <Route path="/" element={<AppLayout />}>
+              <Route
+                path="/create-account"
+                element={<CreateAccountPage />}
+              />
 
-                  {/* -------------------------------------------------
-                     ÁREAS DE CONSULTA
-                     Admin + Viewer
-                     ------------------------------------------------- */}
+              {/* ========================================
+                  PORTAL DO UTILIZADOR
+              ======================================== */}
 
-                  <Route path="dashboard" element={<Dashboard />} />
-                  <Route path="equipment" element={<EquipmentPage />} />
-                  <Route path="equipment/:id" element={<EquipmentPage />} />
-                  <Route path="invoices" element={<InvoicePage />} />
-                  <Route path="invoices/:id" element={<InvoicePage />} />
-                  <Route path="warranties" element={<WarrantyPage />} />
-                  <Route path="reservations" element={<ReservationsPage />} />
-                  <Route path="documents" element={<DocumentsPage />} />
-                  <Route path="alerts" element={<AlertsPage />} />
-                  <Route path="reports" element={<ReportsPage />} />
+              <Route
+                element={
+                  <ProtectedRoute allowedRoles={["user"]} />
+                }
+              >
+                <Route
+                  path="/portal"
+                  element={<MyPortalPage />}
+                />
+              </Route>
 
-                  {/* -------------------------------------------------
-                     ADMIN + VIEWER
-                     Viewer pode consultar estas áreas.
-                     Apenas o Admin poderá alterar dados.
-                     ------------------------------------------------- */}
+              {/* ========================================
+                  ÁREA IT
+                  ADMIN + VIEWER
+              ======================================== */}
 
-                  <Route element={<ProtectedRoute allowedRoles={["admin", "viewer"]} />}>
-                    <Route path="users" element={<UsersPage />} />
-                    <Route path="hierarchy" element={<HierarchyPage />} />
-                    <Route path="settings" element={<SettingsPage />} />
+              <Route
+                element={
+                  <ProtectedRoute
+                    allowedRoles={["admin", "viewer"]}
+                  />
+                }
+              >
+                <Route element={<AppLayout />}>
+                  {/* ====================================
+                      PRINCIPAL
+                  ==================================== */}
+
+                  <Route
+                    path="/dashboard"
+                    element={<DashboardPage />}
+                  />
+
+                  <Route
+                    path="/equipment"
+                    element={<EquipmentPage />}
+                  />
+
+                  {/* ====================================
+                      GESTÃO
+                  ==================================== */}
+
+                  <Route
+                    path="/users"
+                    element={<UsersPage />}
+                  />
+
+                  <Route
+                    path="/departments"
+                    element={<DepartmentsPage />}
+                  />
+
+                  <Route
+                    path="/invoices"
+                    element={<InvoicesPage />}
+                  />
+
+                  <Route
+                    path="/warranties"
+                    element={<WarrantiesPage />}
+                  />
+
+                  <Route
+                    path="/reservations"
+                    element={<ReservationsPage />}
+                  />
+
+                  <Route
+                    path="/documents"
+                    element={<DocumentsPage />}
+                  />
+
+                  <Route
+                    path="/hierarchy"
+                    element={<HierarchyPage />}
+                  />
+
+                  {/* ====================================
+                      MONITORIZAÇÃO
+                  ==================================== */}
+
+                  <Route
+                    path="/alerts"
+                    element={<AlertsPage />}
+                  />
+
+                  <Route
+                    path="/reports"
+                    element={<ReportsPage />}
+                  />
+
+                  {/* ====================================
+                      ADMIN ONLY
+                  ==================================== */}
+
+                  <Route
+                    element={
+                      <ProtectedRoute allowedRoles={["admin"]} />
+                    }
+                  >
+                    <Route
+                      path="/logs"
+                      element={<LogsPage />}
+                    />
+
+                    <Route
+                      path="/password-reset-requests"
+                      element={<PasswordResetRequestsPage />}
+                    />
                   </Route>
 
-                  {/* -------------------------------------------------
-                     ADMIN ONLY
-                     Apenas o Admin pode consultar os Logs.
-                     ------------------------------------------------- */}
+                  {/* ====================================
+                      SISTEMA
+                  ==================================== */}
 
-                  <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
-                    <Route path="logs" element={<LogsPage />} />
-                  </Route>
+                  <Route
+                    path="/settings"
+                    element={<SettingsPage />}
+                  />
 
-                  {/* -------------------------------------------------
-                     ÁREAS PESSOAIS
-                     Admin + Viewer
-                     ------------------------------------------------- */}
+                  <Route
+                    path="/profile"
+                    element={<ProfilePage />}
+                  />
 
-                  <Route path="profile" element={<ProfilePage />} />
-                  <Route path="support" element={<SupportPage />} />
-
-                  {/* -------------------------------------------------
-                     SERVER ERROR
-                     ------------------------------------------------- */}
-
-                  <Route path="500" element={<ServerError />} />
-
+                  <Route
+                    path="/support"
+                    element={<SupportPage />}
+                  />
                 </Route>
               </Route>
 
-              {/* =====================================================
-                 USER PORTAL
-                 Layout independente do painel IT.
-                 Apenas utilizadores com role "user".
-                 ===================================================== */}
+              {/* ========================================
+                  FALLBACK
+              ======================================== */}
 
-              <Route element={<ProtectedRoute allowedRoles={["user"]} />}>
-                <Route path="/portal/*" element={<MyPortal />} />
-              </Route>
-
-              {/* =====================================================
-                 ACCESS DENIED
-                 ===================================================== */}
-
-              <Route path="/403" element={<Forbidden />} />
-
-              {/* =====================================================
-                 404
-                 ===================================================== */}
-
-              <Route path="*" element={<NotFound />} />
-
+              <Route
+                path="*"
+                element={<Navigate to="/login" replace />}
+              />
             </Routes>
-          </BrowserRouter>
-
-        </TooltipProvider>
-      </LanguageProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
-);
+          </ThemeProvider>
+        </LanguageProvider>
+      </AuthProvider>
+    </BrowserRouter>
+  );
+}
 
 export default App;

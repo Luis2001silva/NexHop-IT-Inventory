@@ -340,51 +340,65 @@ const AppLayout = () => {
      MARCAR NOTIFICAÇÃO COMO LIDA
      ======================================================= */
 
-  const markNotificationAsRead = async (
-    notificationId: number
-  ) => {
-    if (!user?.id) return;
+    const markNotificationAsRead = async (
+      notificationId: number
+    ) => {
+      if (!user?.id) return;
 
-    const notification =
-      notifications.find(
-        (item) =>
-          item.id === notificationId
+      const notification = notifications.find(
+        (item) => item.id === notificationId
       );
 
-    if (
-      !notification ||
-      notification.read
-    ) {
-      return;
-    }
+      if (!notification) return;
 
-    const { error } =
-      await (supabase as any)
+      const { error } = await (supabase as any)
         .from("notifications")
         .update({ read: true })
         .eq("id", notificationId)
         .eq("user_id", user.id);
 
-    if (error) {
-      console.error(
-        "Erro ao marcar notificação:",
-        error
-      );
-      return;
-    }
+      if (error) {
+        console.error(
+          "Erro ao marcar notificação:",
+          error
+        );
+        return;
+      }
 
-    setNotifications(
-      (current) =>
+      setNotifications((current) =>
         current.map((item) =>
           item.id === notificationId
-            ? {
-                ...item,
-                read: true,
-              }
+            ? { ...item, read: true }
             : item
         )
-    );
-  };
+      );
+
+      /*
+      * PEDIDOS DE RECUPERAÇÃO
+      *
+      * As notificações criadas pelo sistema para recuperação
+      * de palavra-passe encaminham o Admin diretamente para
+      * a página de pedidos.
+      */
+
+      const notificationText = `
+        ${notification.title ?? ""}
+        ${notification.message ?? ""}
+      `.toLowerCase();
+
+      const isPasswordRecovery =
+        notificationText.includes("recuperação") ||
+        notificationText.includes("recuperacao") ||
+        notificationText.includes("password") ||
+        notificationText.includes("palavra-passe") ||
+        notificationText.includes("palavra passe") ||
+        notificationText.includes("recovery");
+
+      if (isPasswordRecovery && role === "admin") {
+        setNotificationsOpen(false);
+        navigate("/password-reset-requests");
+      }
+    };
 
   /* =======================================================
      MARCAR TODAS COMO LIDAS

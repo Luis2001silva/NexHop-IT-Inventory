@@ -1,9 +1,12 @@
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+
 import { useLanguage } from "@/context/LanguageContext";
 import { useTheme } from "@/context/ThemeContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 
 import {
   LayoutDashboard,
@@ -22,11 +25,12 @@ import {
   CircleHelp,
   ChevronRight,
   ChevronLeft,
+  KeyRound,
 } from "lucide-react";
 
 /* =========================================================
    SIDEBAR PROPS
-   ========================================================= */
+========================================================= */
 
 interface SidebarProps {
   collapsed: boolean;
@@ -35,18 +39,19 @@ interface SidebarProps {
 
 /* =========================================================
    NAVIGATION ITEM
-   ========================================================= */
+========================================================= */
 
 interface NavItem {
   path: string;
   label: string;
   icon: React.ReactNode;
   updating?: boolean;
+  recovery?: boolean;
 }
 
 /* =========================================================
    NAVIGATION SECTION
-   ========================================================= */
+========================================================= */
 
 interface NavSection {
   title: string;
@@ -55,9 +60,7 @@ interface NavSection {
 
 /* =========================================================
    LOADING CIRCLE
-   Indicador utilizado nas páginas que ainda estão em
-   desenvolvimento.
-   ========================================================= */
+========================================================= */
 
 const LoadingCircle = ({
   size = 16,
@@ -86,7 +89,7 @@ const LoadingCircle = ({
 
 /* =========================================================
    SIDEBAR
-   ========================================================= */
+========================================================= */
 
 export const Sidebar = ({
   collapsed,
@@ -101,7 +104,7 @@ export const Sidebar = ({
 
   /* =======================================================
      ROLE
-     ======================================================= */
+  ======================================================= */
 
   const isAdmin = role === "admin";
   const isViewer = role === "viewer";
@@ -109,18 +112,7 @@ export const Sidebar = ({
 
   /* =======================================================
      PERMISSIONS
-
-     Admin:
-     - acesso completo ao painel IT
-
-     Viewer:
-     - acesso de consulta ao painel IT
-     - Users, Hierarchy e Settings também disponíveis
-     - Logs continuam exclusivos do Admin
-
-     User:
-     - será tratado posteriormente através do My Portal
-     ======================================================= */
+  ======================================================= */
 
   const canViewIT = isAdmin || isViewer;
   const canViewUsers = isAdmin || isViewer;
@@ -128,13 +120,89 @@ export const Sidebar = ({
   const canViewSettings = isAdmin || isViewer;
 
   /* =======================================================
+     PASSWORD RESET REQUESTS
+  ======================================================= */
+
+  const [pendingRecoveryRequests, setPendingRecoveryRequests] =
+    useState(0);
+
+  /* =======================================================
+     LOAD PENDING RECOVERY REQUESTS
+  ======================================================= */
+
+  const loadPendingRecoveryRequests = async () => {
+    if (!isAdmin) {
+      setPendingRecoveryRequests(0);
+      return;
+    }
+
+    const { count, error } = await (supabase as any)
+      .from("password_reset_requests")
+      .select("id", {
+        count: "exact",
+        head: true,
+      })
+      .eq("status", "pending");
+
+    if (error) {
+      console.error(
+        "Erro ao carregar pedidos de recuperação:",
+        error
+      );
+      return;
+    }
+
+    setPendingRecoveryRequests(count ?? 0);
+  };
+
+  /* =======================================================
+     INITIAL LOAD
+  ======================================================= */
+
+  useEffect(() => {
+    if (!isAdmin) {
+      setPendingRecoveryRequests(0);
+      return;
+    }
+
+    loadPendingRecoveryRequests();
+  }, [isAdmin]);
+
+  /* =======================================================
+     REALTIME - PASSWORD RESET REQUESTS
+  ======================================================= */
+
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    const channel = supabase
+      .channel("sidebar-password-reset-requests")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "password_reset_requests",
+        },
+        () => {
+          loadPendingRecoveryRequests();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isAdmin]);
+
+  /* =======================================================
      NAVIGATION
-     ======================================================= */
+  ======================================================= */
 
   const sections: NavSection[] = [
     /* =====================================================
        PRINCIPAL
-       ===================================================== */
+    ===================================================== */
 
     {
       title: language === "pt" ? "PRINCIPAL" : "MAIN",
@@ -153,11 +221,6 @@ export const Sidebar = ({
           icon: <Monitor size={18} />,
         },
 
-        /* -------------------------------------------------
-           USERS
-           Admin + Viewer
-           ------------------------------------------------- */
-
         ...(canViewUsers
           ? [
               {
@@ -173,7 +236,7 @@ export const Sidebar = ({
     /* =====================================================
        GESTÃO
        Admin + Viewer
-       ===================================================== */
+    ===================================================== */
 
     {
       title: language === "pt" ? "GESTÃO" : "MANAGEMENT",
@@ -205,11 +268,6 @@ export const Sidebar = ({
           updating: true,
         },
 
-        /* -------------------------------------------------
-           HIERARCHY
-           Admin + Viewer
-           ------------------------------------------------- */
-
         ...(canViewHierarchy
           ? [
               {
@@ -225,10 +283,13 @@ export const Sidebar = ({
     /* =====================================================
        MONITORIZAÇÃO
        Admin + Viewer
-       ===================================================== */
+    ===================================================== */
 
     {
-      title: language === "pt" ? "MONITORIZAÇÃO" : "MONITORING",
+      title:
+        language === "pt"
+          ? "MONITORIZAÇÃO"
+          : "MONITORING",
 
       items: [
         {
@@ -248,7 +309,7 @@ export const Sidebar = ({
         /* -------------------------------------------------
            LOGS
            Apenas Admin
-           ------------------------------------------------- */
+        ------------------------------------------------- */
 
         ...(isAdmin
           ? [
@@ -260,51 +321,67 @@ export const Sidebar = ({
               },
             ]
           : []),
+
+        /* -------------------------------------------------
+           PEDIDOS DE RECUPERAÇÃO
+           Apenas Admin
+        ------------------------------------------------- */
+
+        ...(isAdmin
+          ? [
+              {
+                path: "/password-reset-requests",
+                label:
+                  language === "pt"
+                    ? "Pedidos de recuperação"
+                    : "Recovery requests",
+                icon: <KeyRound size={18} />,
+                recovery: true,
+              },
+            ]
+          : []),
       ],
     },
 
     /* =====================================================
        SISTEMA
-       ===================================================== */
+    ===================================================== */
 
     {
-      title: language === "pt" ? "SISTEMA" : "SYSTEM",
+      title:
+        language === "pt"
+          ? "SISTEMA"
+          : "SYSTEM",
 
       items: [
-        /* -------------------------------------------------
-           SETTINGS
-           Admin + Viewer
-           ------------------------------------------------- */
-
         ...(canViewSettings
           ? [
               {
                 path: "/settings",
-                label: language === "pt" ? "Definições" : "Settings",
+                label:
+                  language === "pt"
+                    ? "Definições"
+                    : "Settings",
                 icon: <Settings size={18} />,
               },
             ]
           : []),
 
-        /* -------------------------------------------------
-           PROFILE
-           Admin + Viewer
-           ------------------------------------------------- */
-
         {
           path: "/profile",
-          label: language === "pt" ? "Perfil" : "Profile",
+          label:
+            language === "pt"
+              ? "Perfil"
+              : "Profile",
           icon: <UserCircle size={18} />,
         },
 
-        /* -------------------------------------------------
-           SUPPORT
-           Admin + Viewer
-           ------------------------------------------------- */
-
         {
           path: "/support",
-          label: language === "pt" ? "Suporte" : "Support",
+          label:
+            language === "pt"
+              ? "Suporte"
+              : "Support",
           icon: <CircleHelp size={18} />,
         },
       ],
@@ -313,7 +390,7 @@ export const Sidebar = ({
 
   /* =========================================================
      ACTIVE ROUTE
-     ========================================================= */
+  ========================================================= */
 
   const isActive = (path: string) => {
     if (path === "/dashboard") {
@@ -325,9 +402,7 @@ export const Sidebar = ({
 
   /* =========================================================
      ROLE LOADING
-     Evita mostrar temporariamente o menu errado enquanto
-     o role está a ser carregado.
-     ========================================================= */
+  ========================================================= */
 
   if (roleLoading) {
     return (
@@ -343,13 +418,20 @@ export const Sidebar = ({
         <div
           className={cn(
             "h-[72px] flex items-center border-b",
-            isLight ? "border-slate-200" : "border-white/[0.06]",
-            collapsed ? "justify-center px-2" : "justify-between px-5",
+            isLight
+              ? "border-slate-200"
+              : "border-white/[0.06]",
+            collapsed
+              ? "justify-center px-2"
+              : "justify-between px-5",
           )}
         />
 
         <div className="flex-1 flex items-center justify-center">
-          <LoadingCircle size={18} isLight={isLight} />
+          <LoadingCircle
+            size={18}
+            isLight={isLight}
+          />
         </div>
       </aside>
     );
@@ -357,14 +439,10 @@ export const Sidebar = ({
 
   /* =========================================================
      SIDEBAR UI
-     ========================================================= */
+  ========================================================= */
 
   return (
     <>
-      {/* ===================================================
-          SPINNER ANIMATION
-          =================================================== */}
-
       <style>
         {`
           @keyframes sidebarCircleRotate {
@@ -374,6 +452,17 @@ export const Sidebar = ({
 
             to {
               transform: rotate(360deg);
+            }
+          }
+
+          @keyframes recoveryPulse {
+            0%,
+            100% {
+              opacity: 1;
+            }
+
+            50% {
+              opacity: 0.55;
             }
           }
         `}
@@ -391,21 +480,24 @@ export const Sidebar = ({
       >
         {/* =================================================
             HEADER
-            ================================================= */}
+        ================================================= */}
 
         <div
           className={cn(
             "h-[72px] flex items-center border-b",
-            isLight ? "border-slate-200" : "border-white/[0.06]",
-            collapsed ? "justify-center px-2" : "justify-between px-5",
+            isLight
+              ? "border-slate-200"
+              : "border-white/[0.06]",
+            collapsed
+              ? "justify-center px-2"
+              : "justify-between px-5",
           )}
         >
-          {/* -------------------------------------------------
-              LOGO SIDEBAR ABERTA
-              ------------------------------------------------- */}
-
           {!collapsed && (
-            <Link to="/dashboard" className="flex items-center min-w-0">
+            <Link
+              to="/dashboard"
+              className="flex items-center min-w-0"
+            >
               <img
                 src={
                   isLight
@@ -417,10 +509,6 @@ export const Sidebar = ({
               />
             </Link>
           )}
-
-          {/* -------------------------------------------------
-              LOGO SIDEBAR FECHADA
-              ------------------------------------------------- */}
 
           {collapsed && (
             <Link
@@ -439,10 +527,6 @@ export const Sidebar = ({
             </Link>
           )}
 
-          {/* -------------------------------------------------
-              BOTÃO ABRIR / FECHAR
-              ------------------------------------------------- */}
-
           <Button
             variant="ghost"
             size="icon"
@@ -454,13 +538,17 @@ export const Sidebar = ({
                 : "text-white/60 hover:text-white hover:bg-white/[0.05]",
             )}
           >
-            {collapsed ? <ChevronRight size={19} /> : <ChevronLeft size={19} />}
+            {collapsed ? (
+              <ChevronRight size={19} />
+            ) : (
+              <ChevronLeft size={19} />
+            )}
           </Button>
         </div>
 
         {/* =================================================
             NAVIGATION
-            ================================================= */}
+        ================================================= */}
 
         <nav
           className="nexa-sidebar-scroll flex-1 overflow-y-auto px-3 py-5"
@@ -472,50 +560,61 @@ export const Sidebar = ({
           <div className="space-y-6">
             {sections.map((section) => (
               <div key={section.title}>
-                {/* -------------------------------------------
-                    SECTION TITLE
-                    ------------------------------------------- */}
-
                 {!collapsed && (
                   <div
                     className={cn(
                       "px-3 mb-2 text-[10px] font-semibold tracking-[0.12em]",
-                      isLight ? "text-slate-400" : "text-white/35",
+                      isLight
+                        ? "text-slate-400"
+                        : "text-white/35",
                     )}
                   >
                     {section.title}
                   </div>
                 )}
 
-                {/* -------------------------------------------
-                    SECTION ITEMS
-                    ------------------------------------------- */}
-
                 <div className="space-y-1">
                   {section.items.map((item) => {
                     const active = isActive(item.path);
+
+                    const isRecoveryItem =
+                      item.recovery === true;
+
+                    const hasPendingRecovery =
+                      isRecoveryItem &&
+                      pendingRecoveryRequests > 0;
 
                     return (
                       <Link
                         key={item.path}
                         to={item.path}
-                        title={collapsed ? item.label : undefined}
+                        title={
+                          collapsed
+                            ? item.label
+                            : undefined
+                        }
                         className={cn(
                           "group relative flex items-center h-10 rounded-lg",
                           "transition-all duration-200",
-                          collapsed ? "justify-center px-0" : "px-3 gap-3",
+
+                          collapsed
+                            ? "justify-center px-0"
+                            : "px-3 gap-3",
+
                           active
                             ? isLight
                               ? "bg-blue-500/10 text-blue-600"
                               : "bg-blue-500/10 text-blue-400"
-                            : isLight
-                              ? "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
-                              : "text-white/60 hover:text-white hover:bg-white/[0.04]",
+                            : hasPendingRecovery
+                              ? isLight
+                                ? "border border-blue-500/30 bg-blue-500/[0.07] text-blue-600"
+                                : "border border-blue-500/30 bg-blue-500/[0.08] text-blue-300"
+                              : isLight
+                                ? "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                                : "text-white/60 hover:text-white hover:bg-white/[0.04]",
                         )}
                       >
-                        {/* -------------------------------------
-                            ACTIVE INDICATOR
-                            ------------------------------------- */}
+                        {/* ACTIVE INDICATOR */}
 
                         {active && (
                           <span
@@ -527,15 +626,38 @@ export const Sidebar = ({
                           />
                         )}
 
-                        {/* -------------------------------------
-                            ICON
-                            ------------------------------------- */}
+                        {/* RECOVERY ALERT INDICATOR */}
 
-                        <span className="shrink-0">{item.icon}</span>
+                        {hasPendingRecovery && (
+                          <span
+                            className={cn(
+                              "absolute",
+                              collapsed
+                                ? "right-1 top-1"
+                                : "left-1.5 top-1/2 -translate-y-1/2",
+                              "h-1.5 w-1.5 rounded-full",
+                              "bg-blue-400",
+                            )}
+                            style={{
+                              animation:
+                                "recoveryPulse 1.5s ease-in-out infinite",
+                            }}
+                          />
+                        )}
 
-                        {/* -------------------------------------
-                            LABEL
-                            ------------------------------------- */}
+                        {/* ICON */}
+
+                        <span
+                          className={cn(
+                            "shrink-0",
+                            hasPendingRecovery &&
+                              "text-blue-400",
+                          )}
+                        >
+                          {item.icon}
+                        </span>
+
+                        {/* LABEL */}
 
                         {!collapsed && (
                           <span className="text-[13px] font-medium truncate">
@@ -543,22 +665,53 @@ export const Sidebar = ({
                           </span>
                         )}
 
-                        {/* -------------------------------------
-                            DEVELOPMENT INDICATOR
-                            ------------------------------------- */}
+                        {/* RECOVERY BADGE */}
 
-                        {!collapsed && item.updating && (
-                          <span
-                            className="ml-auto shrink-0 flex items-center justify-center"
-                            title={
-                              language === "pt"
-                                ? "Em desenvolvimento"
-                                : "In development"
-                            }
-                          >
-                            <LoadingCircle size={16} isLight={isLight} />
-                          </span>
-                        )}
+                        {!collapsed &&
+                          hasPendingRecovery && (
+                            <span
+                              className="
+                                ml-auto
+                                shrink-0
+                                min-w-[22px]
+                                h-[20px]
+                                px-1.5
+                                rounded-full
+                                bg-blue-500
+                                text-white
+                                text-[10px]
+                                font-bold
+                                flex
+                                items-center
+                                justify-center
+                                shadow-[0_0_14px_rgba(59,130,246,0.35)]
+                              "
+                            >
+                              {pendingRecoveryRequests > 99
+                                ? "99+"
+                                : pendingRecoveryRequests}
+                            </span>
+                          )}
+
+                        {/* DEVELOPMENT INDICATOR */}
+
+                        {!collapsed &&
+                          item.updating &&
+                          !hasPendingRecovery && (
+                            <span
+                              className="ml-auto shrink-0 flex items-center justify-center"
+                              title={
+                                language === "pt"
+                                  ? "Em desenvolvimento"
+                                  : "In development"
+                              }
+                            >
+                              <LoadingCircle
+                                size={16}
+                                isLight={isLight}
+                              />
+                            </span>
+                          )}
                       </Link>
                     );
                   })}

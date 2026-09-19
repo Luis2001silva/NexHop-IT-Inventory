@@ -8,6 +8,9 @@ import {
   Eye,
   EyeOff,
   ArrowRight,
+  Mail,
+  LockKeyhole,
+  ShieldCheck,
 } from 'lucide-react';
 
 const LoginForm = () => {
@@ -20,17 +23,60 @@ const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [errors, setErrors] = useState<{
+    email?: string;
+    password?: string;
+  }>({});
+
   const isPT = language === 'pt';
+
+  const validateForm = () => {
+    const newErrors: {
+      email?: string;
+      password?: string;
+    } = {};
+
+    const trimmedEmail = email.trim();
+
+    if (!trimmedEmail) {
+      newErrors.email = isPT
+        ? 'O email é obrigatório.'
+        : 'Email is required.';
+    } else if (
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)
+    ) {
+      newErrors.email = isPT
+        ? 'Introduza um email válido.'
+        : 'Enter a valid email address.';
+    }
+
+    if (!password) {
+      newErrors.password = isPT
+        ? 'A palavra-passe é obrigatória.'
+        : 'Password is required.';
+    }
+
+    setErrors(newErrors);
+
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (isSubmitting) return;
 
+    const isValid = validateForm();
+
+    if (!isValid) return;
+
     setIsSubmitting(true);
 
     try {
-      const success = await login(email, password);
+      const success = await login(
+        email.trim(),
+        password
+      );
 
       if (success) {
         const {
@@ -74,435 +120,805 @@ const LoginForm = () => {
     }
   };
 
-  const handleMicrosoft = () => {
-    toast.info(
-      isPT
-        ? 'Login com Microsoft será configurado brevemente.'
-        : 'Microsoft login will be configured soon.'
-    );
+  const handleEmailChange = (
+    value: string
+  ) => {
+    setEmail(value);
+
+    if (errors.email) {
+      setErrors((prev) => ({
+        ...prev,
+        email: undefined,
+      }));
+    }
   };
 
-  const handleGoogle = () => {
-    toast.info(
-      isPT
-        ? 'Login com Google será configurado brevemente.'
-        : 'Google login will be configured soon.'
-    );
+  const handlePasswordChange = (
+    value: string
+  ) => {
+    setPassword(value);
+
+    if (errors.password) {
+      setErrors((prev) => ({
+        ...prev,
+        password: undefined,
+      }));
+    }
   };
 
   return (
-    <div
-      className="relative min-h-screen overflow-hidden bg-[#080D1F] text-white"
-    >
+    <div className="relative min-h-screen overflow-hidden bg-[#050A17] text-white">
 
       {/* =====================================================
-          BACKGROUND GLOW
+          BACKGROUND
+      ===================================================== */}
+
+      <div className="pointer-events-none absolute inset-0">
+
+        <div
+          className="
+            absolute
+            left-[-12%]
+            top-[25%]
+            h-[600px]
+            w-[600px]
+            rounded-full
+            bg-blue-600/[0.08]
+            blur-[120px]
+          "
+        />
+
+        <div
+          className="
+            absolute
+            right-[-10%]
+            top-[-10%]
+            h-[600px]
+            w-[600px]
+            rounded-full
+            bg-blue-500/[0.07]
+            blur-[120px]
+          "
+        />
+
+        <div
+          className="
+            absolute
+            bottom-[-15%]
+            left-[30%]
+            h-[450px]
+            w-[450px]
+            rounded-full
+            bg-blue-600/[0.05]
+            blur-[100px]
+          "
+        />
+
+        <div
+          className="
+            absolute
+            left-[-18%]
+            top-[8%]
+            h-[700px]
+            w-[1000px]
+            rounded-[50%]
+            border
+            border-blue-500/[0.12]
+          "
+        />
+
+        <div
+          className="
+            absolute
+            left-[-25%]
+            top-[17%]
+            h-[650px]
+            w-[950px]
+            rounded-[50%]
+            border
+            border-blue-400/[0.07]
+          "
+        />
+
+        <div
+          className="
+            absolute
+            right-[-22%]
+            top-[-5%]
+            h-[750px]
+            w-[1050px]
+            rounded-[50%]
+            border
+            border-blue-500/[0.10]
+          "
+        />
+
+        <div
+          className="
+            absolute
+            inset-0
+            opacity-[0.025]
+            [background-image:linear-gradient(rgba(255,255,255,0.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.35)_1px,transparent_1px)]
+            [background-size:48px_48px]
+          "
+        />
+
+      </div>
+
+
+      {/* =====================================================
+          SIDE TEXT
       ===================================================== */}
 
       <div
-        className="pointer-events-none absolute left-[4%] top-[11%] h-[420px] w-[420px] rounded-full bg-blue-600/[0.035] blur-[80px]"
-      />
+        className="
+          pointer-events-none
+          absolute
+          left-8
+          top-1/2
+          hidden
+          -translate-y-1/2
+          xl:block
+        "
+      >
+        <div className="mb-5 h-px w-12 bg-blue-400/70" />
+
+        <div className="space-y-3 text-[10px] font-medium tracking-[0.28em] text-blue-300/55">
+          <div>PEOPLE</div>
+          <div>EQUIPMENT</div>
+          <div>SUPPORT</div>
+          <div>ALWAYS CONNECTED</div>
+        </div>
+      </div>
+
 
       <div
-        className="pointer-events-none absolute left-[14%] top-[28%] h-[160px] w-[160px] rounded-full bg-blue-600/[0.12] blur-[65px]"
-      />
+        className="
+          pointer-events-none
+          absolute
+          bottom-12
+          left-8
+          hidden
+          xl:block
+        "
+      >
+        <div className="space-y-1 text-[10px] tracking-[0.28em] text-blue-300/45">
+          <div>GUIMARÃES</div>
+          <div>PORTUGAL</div>
+        </div>
+
+        <div className="mt-4 h-px w-8 bg-blue-400/70" />
+      </div>
+
+
+      <div
+        className="
+          pointer-events-none
+          absolute
+          right-8
+          top-1/2
+          hidden
+          -translate-y-1/2
+          xl:block
+        "
+      >
+        <div className="mb-5 h-px w-8 bg-blue-400/70" />
+
+        <div className="max-w-[130px] space-y-2 text-[10px] font-medium leading-6 tracking-[0.28em] text-blue-300/45">
+          <div>TECHNOLOGY</div>
+          <div>FOR A BETTER</div>
+          <div>TOMORROW</div>
+        </div>
+      </div>
+
+
+      <div
+        className="
+          pointer-events-none
+          absolute
+          bottom-12
+          right-8
+          hidden
+          xl:block
+          text-[10px]
+          tracking-[0.28em]
+          text-blue-300/45
+        "
+      >
+        NEXHOP.PT
+
+        <div className="mt-4 ml-auto h-px w-8 bg-blue-400/70" />
+      </div>
 
 
       {/* =====================================================
           MAIN
       ===================================================== */}
 
-      <main
-        className="relative z-10 flex min-h-screen items-center justify-center px-6 py-10"
-      >
+      <main className="relative z-10 flex min-h-screen items-center justify-center px-5 py-8">
 
-        <div
-          className="grid w-full max-w-[1050px] grid-cols-1 items-center gap-12 lg:grid-cols-[1fr_420px] lg:gap-20"
-        >
-
-          {/* =================================================
-              LEFT SIDE
-          ================================================= */}
-
-          <section className="hidden lg:block">
-
-            {/* GLOW CIRCLE */}
-
-            <div
-              className="relative mb-8 h-[420px] w-[420px] rounded-full bg-[#0A1021]"
-            >
-
-              <div
-                className="absolute left-1/2 top-1/2 h-[190px] w-[190px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-600/[0.20] blur-[70px]"
-              />
-
-              <div
-                className="absolute left-1/2 top-1/2 h-[100px] w-[100px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-500/[0.12] blur-[35px]"
-              />
-
-            </div>
-
-
-            {/* TEXT */}
-
-            <div className="max-w-[500px]">
-
-              <div
-                className="mb-4 text-sm font-medium text-white"
-              >
-                NexHop
-              </div>
-
-              <h1
-                className="text-4xl font-bold leading-[1.08] tracking-tight xl:text-5xl"
-              >
-                {isPT ? (
-                  <>
-                    Operações IT, com
-                    <br />
-                    total controlo.
-                  </>
-                ) : (
-                  <>
-                    IT operations, under
-                    <br />
-                    total control.
-                  </>
-                )}
-              </h1>
-
-              <p
-                className="mt-5 max-w-[470px] text-sm leading-6 text-blue-200/65"
-              >
-                {isPT
-                  ? 'Visibilidade sobre equipamentos, pessoas e processos numa só plataforma segura.'
-                  : 'Visibility across equipment, people and processes in one secure platform.'}
-              </p>
-
-
-              {/* STATUS */}
-
-              <div
-                className="mt-7 inline-flex items-center gap-2 rounded-full border border-blue-500/25 bg-blue-500/[0.06] px-3 py-1.5 text-[10px] font-medium text-blue-300"
-              >
-
-                <span
-                  className="h-1.5 w-1.5 rounded-full bg-blue-400"
-                />
-
-                {isPT
-                  ? 'Ambiente operacional protegido'
-                  : 'Protected operational environment'}
-
-              </div>
-
-            </div>
-
-          </section>
-
+        <section className="w-full max-w-[620px]">
 
           {/* =================================================
               LOGIN CARD
           ================================================= */}
 
-          <section>
+          <div
+            className="
+              relative
+              overflow-hidden
+              rounded-[24px]
+              border
+              border-blue-400/30
+              bg-[#091120]/90
+              p-7
+              shadow-[0_0_80px_rgba(37,99,235,0.10)]
+              backdrop-blur-xl
+              sm:p-10
+            "
+          >
 
             <div
-              className="rounded-2xl border border-white/[0.08] bg-[#101726] p-7 shadow-2xl shadow-black/20"
-            >
+              className="
+                pointer-events-none
+                absolute
+                left-1/2
+                top-0
+                h-[2px]
+                w-[55%]
+                -translate-x-1/2
+                bg-blue-400
+                shadow-[0_0_25px_rgba(59,130,246,0.9)]
+              "
+            />
 
-              {/* TITLE */}
+            <div
+              className="
+                pointer-events-none
+                absolute
+                left-1/2
+                top-[-100px]
+                h-[220px]
+                w-[220px]
+                -translate-x-1/2
+                rounded-full
+                bg-blue-500/[0.08]
+                blur-[70px]
+              "
+            />
 
-              <div className="mb-6">
+
+            {/* =================================================
+                LOGO
+            ================================================= */}
+
+            <div className="relative mb-8 flex flex-col items-center">
+
+              <div
+                className="
+                  relative
+                  mb-3
+                  flex
+                  h-[64px]
+                  w-[64px]
+                  items-center
+                  justify-center
+                "
+              >
 
                 <div
-                  className="mb-2 text-sm font-semibold text-blue-400"
+                  className="
+                    absolute
+                    inset-0
+                    rounded-2xl
+                    bg-blue-500/[0.10]
+                    blur-xl
+                  "
+                />
+
+                <div
+                  className="
+                    relative
+                    flex
+                    h-[60px]
+                    w-[60px]
+                    items-center
+                    justify-center
+                    rounded-2xl
+                    border
+                    border-blue-400/20
+                    bg-[#0B1629]
+                    shadow-[0_0_30px_rgba(37,99,235,0.12)]
+                  "
                 >
-                  NexHop
+                  <span
+                    className="
+                      bg-gradient-to-br
+                      from-sky-300
+                      via-blue-500
+                      to-blue-700
+                      bg-clip-text
+                      text-[40px]
+                      font-black
+                      leading-none
+                      tracking-[-0.12em]
+                      text-transparent
+                    "
+                  >
+                    N
+                  </span>
                 </div>
-
-                <h2
-                  className="text-3xl font-bold leading-tight tracking-tight"
-                >
-                  {isPT
-                    ? 'Entrar na plataforma'
-                    : 'Enter the platform'}
-                </h2>
-
-                <p
-                  className="mt-2 text-sm leading-5 text-white/45"
-                >
-                  {isPT
-                    ? 'Aceda à gestão de equipamentos e operações IT'
-                    : 'Access equipment management and IT operations'}
-                </p>
 
               </div>
 
-
-              {/* FORM */}
-
-              <form
-                onSubmit={handleSubmit}
-                className="space-y-4"
+              <div
+                className="
+                  text-[28px]
+                  font-bold
+                  tracking-[-0.04em]
+                  text-white
+                "
               >
+                NexHop
+              </div>
 
-                {/* EMAIL */}
+              <div
+                className="
+                  mt-1
+                  text-[10px]
+                  font-medium
+                  tracking-[0.30em]
+                  text-blue-300/70
+                "
+              >
+                IT INVENTORY
+              </div>
 
-                <div>
+            </div>
 
-                  <label
-                    htmlFor="email"
-                    className="mb-2 block text-[11px] font-semibold text-white/80"
-                  >
-                    {isPT
-                      ? 'Email profissional'
-                      : 'Professional email'}
-                  </label>
+
+            {/* =================================================
+                TITLE
+            ================================================= */}
+
+            <div className="relative mb-8 text-center">
+
+              <h1
+                className="
+                  text-[28px]
+                  font-semibold
+                  tracking-[-0.025em]
+                  text-white
+                  sm:text-[30px]
+                "
+              >
+                {isPT
+                  ? 'Bem-vindo de volta'
+                  : 'Welcome back'}
+              </h1>
+
+              <p
+                className="
+                  mt-2
+                  text-sm
+                  text-blue-200/60
+                "
+              >
+                {isPT
+                  ? 'Inicia sessão para aceder ao sistema'
+                  : 'Sign in to access the system'}
+              </p>
+
+            </div>
+
+
+            {/* =================================================
+                FORM
+            ================================================= */}
+
+            <form
+              onSubmit={handleSubmit}
+              noValidate
+              className="relative space-y-5"
+            >
+
+              {/* EMAIL */}
+
+              <div>
+
+                <label
+                  htmlFor="email"
+                  className="
+                    mb-2
+                    block
+                    text-xs
+                    font-medium
+                    text-white/80
+                  "
+                >
+                  {isPT
+                    ? 'Email profissional'
+                    : 'Professional email'}
+                </label>
+
+                <div className="relative">
+
+                  <Mail
+                    size={18}
+                    className="
+                      pointer-events-none
+                      absolute
+                      left-4
+                      top-1/2
+                      -translate-y-1/2
+                      text-blue-200/65
+                    "
+                  />
 
                   <input
                     id="email"
-                    type="email"
+                    type="text"
+                    inputMode="email"
                     value={email}
                     onChange={(e) =>
-                      setEmail(e.target.value)
+                      handleEmailChange(
+                        e.target.value
+                      )
                     }
                     placeholder={
                       isPT
                         ? 'nome@empresa.pt'
                         : 'name@company.com'
                     }
-                    required
                     autoComplete="email"
-                    className="h-12 w-full rounded-xl border border-white/[0.09] bg-[#0B1120] px-3.5 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20"
+                    aria-invalid={!!errors.email}
+                    aria-describedby={
+                      errors.email
+                        ? 'email-error'
+                        : undefined
+                    }
+                    className={`
+                      h-14
+                      w-full
+                      rounded-xl
+                      border
+                      bg-[#081120]
+                      pl-12
+                      pr-4
+                      text-sm
+                      text-white
+                      outline-none
+                      transition
+                      placeholder:text-blue-100/30
+                      hover:border-blue-300/30
+                      focus:ring-2
+                      focus:ring-blue-500/10
+                      ${
+                        errors.email
+                          ? 'border-red-500/60 focus:border-red-500/70'
+                          : 'border-blue-300/20 focus:border-blue-400/60'
+                      }
+                    `}
                   />
 
                 </div>
 
-
-                {/* PASSWORD */}
-
-                <div>
-
-                  <label
-                    htmlFor="password"
-                    className="mb-2 block text-[11px] font-semibold text-white/80"
+                {errors.email && (
+                  <p
+                    id="email-error"
+                    className="
+                      mt-2
+                      text-xs
+                      font-medium
+                      text-red-400
+                    "
                   >
-                    {isPT
-                      ? 'Palavra-passe'
-                      : 'Password'}
-                  </label>
-
-                  <div className="relative">
-
-                    <input
-                      id="password"
-                      type={
-                        showPassword
-                          ? 'text'
-                          : 'password'
-                      }
-                      value={password}
-                      onChange={(e) =>
-                        setPassword(e.target.value)
-                      }
-                      placeholder={
-                        isPT
-                          ? 'Introduza a sua palavra-passe'
-                          : 'Enter your password'
-                      }
-                      required
-                      autoComplete="current-password"
-                      className="h-12 w-full rounded-xl border border-white/[0.09] bg-[#0B1120] px-3.5 pr-11 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20"
-                    />
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setShowPassword(
-                          (prev) => !prev
-                        )
-                      }
-                      className="absolute right-0 top-0 flex h-12 w-11 items-center justify-center text-white/35 transition hover:text-white/70"
-                    >
-                      {showPassword ? (
-                        <EyeOff size={16} />
-                      ) : (
-                        <Eye size={16} />
-                      )}
-                    </button>
-
-                  </div>
-
-                </div>
-
-
-                {/* OPTIONS */}
-
-                <div
-                  className="flex items-center justify-between gap-3"
-                >
-
-                  <label
-                    htmlFor="remember"
-                    className="flex cursor-pointer items-center gap-2 text-[10px] text-white/50"
-                  >
-
-                    <input
-                      id="remember"
-                      type="checkbox"
-                      className="h-4 w-4 rounded border-white/10 bg-[#0B1120] accent-blue-600"
-                    />
-
-                    {isPT
-                      ? 'Lembrar-me'
-                      : 'Remember me'}
-
-                  </label>
-
-
-                  {/* FORGOT PASSWORD */}
-
-                  <Link
-                    to="/forgot-password"
-                    className="text-[10px] font-medium text-blue-400 transition hover:text-blue-300"
-                  >
-                    {isPT
-                      ? 'Esqueceu-se da palavra-passe?'
-                      : 'Forgot your password?'}
-                  </Link>
-
-                </div>
-
-
-                {/* LOGIN */}
-
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-
-                  {isSubmitting
-                    ? (
-                      isPT
-                        ? 'A entrar...'
-                        : 'Signing in...'
-                    )
-                    : (
-                      <>
-                        {isPT
-                          ? 'Entrar'
-                          : 'Sign in'}
-
-                        <ArrowRight size={15} />
-                      </>
-                    )}
-
-                </button>
-
-              </form>
-
-
-              {/* DIVIDER */}
-
-              <div
-                className="my-5 flex items-center gap-3"
-              >
-
-                <div className="h-px flex-1 bg-white/[0.06]" />
-
-                <span
-                  className="text-[10px] text-white/35"
-                >
-                  {isPT
-                    ? 'ou continue com'
-                    : 'or continue with'}
-                </span>
-
-                <div className="h-px flex-1 bg-white/[0.06]" />
+                    {errors.email}
+                  </p>
+                )}
 
               </div>
 
 
-              {/* MICROSOFT */}
+              {/* PASSWORD */}
 
-              <button
-                type="button"
-                onClick={handleMicrosoft}
-                className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/[0.08] bg-transparent text-xs font-semibold text-white/80 transition hover:bg-white/[0.035] hover:text-white"
-              >
+              <div>
 
-                <div
-                  className="grid grid-cols-2 gap-[1px]"
+                <label
+                  htmlFor="password"
+                  className="
+                    mb-2
+                    block
+                    text-xs
+                    font-medium
+                    text-white/80
+                  "
                 >
-                  <span className="h-[6px] w-[6px] bg-white" />
-                  <span className="h-[6px] w-[6px] bg-white/80" />
-                  <span className="h-[6px] w-[6px] bg-white/80" />
-                  <span className="h-[6px] w-[6px] bg-white" />
+                  {isPT
+                    ? 'Palavra-passe'
+                    : 'Password'}
+                </label>
+
+                <div className="relative">
+
+                  <LockKeyhole
+                    size={18}
+                    className="
+                      pointer-events-none
+                      absolute
+                      left-4
+                      top-1/2
+                      -translate-y-1/2
+                      text-blue-200/65
+                    "
+                  />
+
+                  <input
+                    id="password"
+                    type={
+                      showPassword
+                        ? 'text'
+                        : 'password'
+                    }
+                    value={password}
+                    onChange={(e) =>
+                      handlePasswordChange(
+                        e.target.value
+                      )
+                    }
+                    placeholder={
+                      isPT
+                        ? 'Introduza a sua palavra-passe'
+                        : 'Enter your password'
+                    }
+                    autoComplete="current-password"
+                    aria-invalid={!!errors.password}
+                    aria-describedby={
+                      errors.password
+                        ? 'password-error'
+                        : undefined
+                    }
+                    className={`
+                      h-14
+                      w-full
+                      rounded-xl
+                      border
+                      bg-[#081120]
+                      pl-12
+                      pr-12
+                      text-sm
+                      text-white
+                      outline-none
+                      transition
+                      placeholder:text-blue-100/30
+                      hover:border-blue-300/30
+                      focus:ring-2
+                      focus:ring-blue-500/10
+                      ${
+                        errors.password
+                          ? 'border-red-500/60 focus:border-red-500/70'
+                          : 'border-blue-300/20 focus:border-blue-400/60'
+                      }
+                    `}
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setShowPassword(
+                        (prev) => !prev
+                      )
+                    }
+                    aria-label={
+                      showPassword
+                        ? 'Ocultar palavra-passe'
+                        : 'Mostrar palavra-passe'
+                    }
+                    className="
+                      absolute
+                      right-0
+                      top-0
+                      flex
+                      h-14
+                      w-12
+                      items-center
+                      justify-center
+                      text-blue-200/50
+                      transition
+                      hover:text-blue-200
+                    "
+                  >
+                    {showPassword ? (
+                      <EyeOff size={18} />
+                    ) : (
+                      <Eye size={18} />
+                    )}
+                  </button>
+
                 </div>
 
-                {isPT
-                  ? 'Entrar com Microsoft'
-                  : 'Sign in with Microsoft'}
+                {errors.password && (
+                  <p
+                    id="password-error"
+                    className="
+                      mt-2
+                      text-xs
+                      font-medium
+                      text-red-400
+                    "
+                  >
+                    {errors.password}
+                  </p>
+                )}
 
-              </button>
+              </div>
 
 
-              {/* GOOGLE */}
+              {/* FORGOT PASSWORD */}
+
+              <div className="flex justify-end">
+
+                <Link
+                  to="/forgot-password"
+                  className="
+                    text-xs
+                    font-medium
+                    text-blue-400
+                    transition
+                    hover:text-blue-300
+                  "
+                >
+                  {isPT
+                    ? 'Esqueceu-se da palavra-passe?'
+                    : 'Forgot your password?'}
+                </Link>
+
+              </div>
+
+
+              {/* LOGIN BUTTON */}
 
               <button
-                type="button"
-                onClick={handleGoogle}
-                className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/[0.08] bg-transparent text-xs font-semibold text-white/80 transition hover:bg-white/[0.035] hover:text-white"
+                type="submit"
+                disabled={isSubmitting}
+                className="
+                  group
+                  flex
+                  h-14
+                  w-full
+                  items-center
+                  justify-center
+                  gap-2
+                  rounded-xl
+                  bg-gradient-to-r
+                  from-blue-500
+                  via-blue-600
+                  to-blue-500
+                  text-sm
+                  font-semibold
+                  text-white
+                  shadow-[0_0_30px_rgba(37,99,235,0.18)]
+                  transition
+                  duration-200
+                  hover:from-blue-400
+                  hover:via-blue-500
+                  hover:to-blue-400
+                  hover:shadow-[0_0_40px_rgba(37,99,235,0.28)]
+                  disabled:cursor-not-allowed
+                  disabled:opacity-60
+                "
               >
 
-                <span
-                  className="text-base font-bold"
-                >
-                  G
-                </span>
+                {isSubmitting ? (
+                  isPT
+                    ? 'A entrar...'
+                    : 'Signing in...'
+                ) : (
+                  <>
+                    {isPT
+                      ? 'Entrar'
+                      : 'Sign in'}
 
-                {isPT
-                  ? 'Entrar com Google'
-                  : 'Sign in with Google'}
+                    <ArrowRight
+                      size={17}
+                      className="
+                        transition-transform
+                        duration-200
+                        group-hover:translate-x-1
+                      "
+                    />
+                  </>
+                )}
 
               </button>
 
-
-              {/* CREATE ACCOUNT */}
-
-              <Link
-                to="/create-account"
-                className="mt-5 block w-full text-center text-[10px] font-medium text-blue-400 transition hover:text-blue-300"
-              >
-                {isPT
-                  ? 'Ainda não tem conta? Criar conta'
-                  : "Don't have an account? Create account"}
-              </Link>
+            </form>
 
 
-              {/* SECURITY */}
+            {/* =================================================
+                SECURITY
+            ================================================= */}
 
-              <div
-                className="mt-4 flex items-center justify-center gap-2 text-[10px] text-white/40"
-              >
+            <div className="relative mt-8">
+
+              <div className="flex items-center gap-3">
+
+                <div className="h-px flex-1 bg-white/[0.07]" />
 
                 <span
-                  className="h-1.5 w-1.5 rounded-full bg-emerald-400"
+                  className="
+                    text-[10px]
+                    text-blue-200/45
+                  "
+                >
+                  {isPT
+                    ? 'Sistema interno'
+                    : 'Internal system'}
+                </span>
+
+                <div className="h-px flex-1 bg-white/[0.07]" />
+
+              </div>
+
+
+              <div
+                className="
+                  mt-6
+                  flex
+                  items-center
+                  justify-center
+                  gap-2
+                  text-sm
+                  text-blue-100/70
+                "
+              >
+
+                <ShieldCheck
+                  size={17}
+                  className="text-blue-400"
                 />
 
-                {isPT
-                  ? 'Ligação segura e encriptada'
-                  : 'Secure and encrypted connection'}
+                <span>IT Inventory</span>
 
+              </div>
+
+
+              <div
+                className="
+                  mt-2
+                  text-center
+                  text-[11px]
+                  text-blue-200/45
+                "
+              >
+                Secure · Manage · Work Better
               </div>
 
             </div>
 
-          </section>
+          </div>
 
-        </div>
+
+          {/* =================================================
+              FOOTER
+          ================================================= */}
+
+          <div
+            className="
+              mt-6
+              text-center
+              text-[10px]
+              tracking-wide
+              text-blue-200/35
+            "
+          >
+            © 2026 NexHop.{' '}
+            {isPT
+              ? 'Todos os direitos reservados.'
+              : 'All rights reserved.'}
+          </div>
+
+        </section>
 
       </main>
 
