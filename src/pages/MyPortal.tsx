@@ -29,9 +29,6 @@ import { supabase } from "@/integrations/supabase/client";
 
 /* =========================================================
    TIPOS
-
-   Mantemos os tipos apenas com colunas que existem no projeto.
-   O User nunca recebe permissões de edição sobre o seu perfil.
    ========================================================= */
 
 type Equipment = {
@@ -103,9 +100,6 @@ type SupportTicket = {
 const MyPortal = () => {
   const { user, signOut } = useAuth();
 
-  // The generated Supabase types are missing some current portal tables/columns.
-  // Runtime schema remains unchanged; this only prevents stale type definitions
-  // from producing false TypeScript errors in this page.
   const db = supabase as any;
   const { language, setLanguage } = useLanguage();
   const { theme, setTheme } = useTheme();
@@ -149,10 +143,6 @@ const MyPortal = () => {
 
   /* =========================================================
      NOME
-
-     O nome vem do profile. Se ainda não existir, usamos
-     metadata/email apenas para apresentação.
-     O User não pode editar este valor.
      ========================================================= */
 
   const userName =
@@ -179,13 +169,6 @@ const MyPortal = () => {
 
   /* =========================================================
      ROTA ATUAL
-
-     O mesmo componente trata:
-     /portal
-     /portal/equipment
-     /portal/support
-     /portal/reservations
-     /portal/profile
      ========================================================= */
 
   const currentPage = location.pathname.replace("/portal", "") || "/";
@@ -227,47 +210,54 @@ const MyPortal = () => {
     setLoading(true);
 
     try {
-      const [profileResult, equipmentResult, reservationResult, notificationResult, ticketResult] =
-        await Promise.all([
-          db
-            .from("profiles")
-            .select(
-              "id, email, full_name, role, department, position, sap_number, avatar_url"
-            )
-            .eq("id", user.id)
-            .maybeSingle(),
+      const [
+        profileResult,
+        equipmentResult,
+        reservationResult,
+        notificationResult,
+        ticketResult,
+      ] = await Promise.all([
+        db
+          .from("profiles")
+          .select(
+            "id, email, full_name, role, department, position, sap_number, avatar_url"
+          )
+          .eq("id", user.id)
+          .maybeSingle(),
 
-          db
-            .from("equipment")
-            .select(
-              "id, name, model, serial_number, asset_tag, status, purchase_date, warranty_end, assigned_user, image_url"
-            )
-            .eq("assigned_user", user.id)
-            .order("id", { ascending: false }),
+        db
+          .from("equipment")
+          .select(
+            "id, name, model, serial_number, asset_tag, status, purchase_date, warranty_end, assigned_user, image_url"
+          )
+          .eq("assigned_user", user.id)
+          .order("id", { ascending: false }),
 
-          (supabase as any)
-            .from("reservations")
-            .select(
-              "id, user_id, title, reservation_date, start_time, end_time, location, status, notes, response_note, original_date, original_start_time, original_end_time, created_at"
-            )
-            .eq("user_id", user.id)
-            .order("reservation_date", { ascending: true }),
+        (supabase as any)
+          .from("reservations")
+          .select(
+            "id, user_id, title, reservation_date, start_time, end_time, location, status, notes, response_note, original_date, original_start_time, original_end_time, created_at"
+          )
+          .eq("user_id", user.id)
+          .order("reservation_date", { ascending: true }),
 
-          (supabase as any)
-            .from("notifications")
-            .select("id, user_id, title, message, type, read, created_at")
-            .eq("user_id", user.id)
-            .order("created_at", { ascending: false })
-            .limit(20),
+        (supabase as any)
+          .from("notifications")
+          .select(
+            "id, user_id, title, message, type, read, created_at"
+          )
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(20),
 
-          (supabase as any)
-            .from("support_tickets")
-            .select(
-              "id, user_id, subject, description, priority, status, created_at, updated_at"
-            )
-            .eq("user_id", user.id)
-            .order("created_at", { ascending: false }),
-        ]);
+        (supabase as any)
+          .from("support_tickets")
+          .select(
+            "id, user_id, subject, description, priority, status, created_at, updated_at"
+          )
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false }),
+      ]);
 
       if (profileResult.error) {
         console.error("Erro ao carregar perfil:", profileResult.error);
@@ -276,15 +266,23 @@ const MyPortal = () => {
       }
 
       if (equipmentResult.error) {
-        console.error("Erro ao carregar equipamentos:", equipmentResult.error);
+        console.error(
+          "Erro ao carregar equipamentos:",
+          equipmentResult.error
+        );
       } else {
         setEquipment((equipmentResult.data ?? []) as Equipment[]);
       }
 
       if (reservationResult.error) {
-        console.error("Erro ao carregar reservas:", reservationResult.error);
+        console.error(
+          "Erro ao carregar reservas:",
+          reservationResult.error
+        );
       } else {
-        setReservations((reservationResult.data ?? []) as Reservation[]);
+        setReservations(
+          (reservationResult.data ?? []) as Reservation[]
+        );
       }
 
       if (notificationResult.error) {
@@ -299,7 +297,10 @@ const MyPortal = () => {
       }
 
       if (ticketResult.error) {
-        console.error("Erro ao carregar pedidos de suporte:", ticketResult.error);
+        console.error(
+          "Erro ao carregar pedidos de suporte:",
+          ticketResult.error
+        );
         setTickets([]);
       } else {
         setTickets((ticketResult.data ?? []) as SupportTicket[]);
@@ -311,9 +312,6 @@ const MyPortal = () => {
 
   /* =========================================================
      REALTIME DAS NOTIFICAÇÕES
-
-     Quando o IT cria/atualiza uma notificação, o sino
-     atualiza automaticamente.
      ========================================================= */
 
   useEffect(() => {
@@ -345,7 +343,9 @@ const MyPortal = () => {
 
     const { data, error } = await (supabase as any)
       .from("notifications")
-      .select("id, user_id, title, message, type, read, created_at")
+      .select(
+        "id, user_id, title, message, type, read, created_at"
+      )
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(20);
@@ -370,7 +370,9 @@ const MyPortal = () => {
 
     if (error) {
       toast.error(
-        isPT ? "Não foi possível marcar a notificação." : "Could not mark notification."
+        isPT
+          ? "Não foi possível marcar a notificação."
+          : "Could not mark notification."
       );
       return;
     }
@@ -407,10 +409,6 @@ const MyPortal = () => {
 
   /* =========================================================
      RESERVAS
-
-     O User só cria a reserva.
-     O estado inicial é sempre "pending".
-     O User não escolhe aprovação/recusa.
      ========================================================= */
 
   async function createReservation(event: FormEvent) {
@@ -501,7 +499,9 @@ const MyPortal = () => {
   async function cancelReservation(id: number) {
     if (!user?.id) return;
 
-    const reservation = reservations.find((item) => item.id === id);
+    const reservation = reservations.find(
+      (item) => item.id === id
+    );
 
     if (!reservation) return;
 
@@ -547,7 +547,10 @@ const MyPortal = () => {
 
     if (!user?.id) return;
 
-    if (!ticketForm.subject.trim() || !ticketForm.description.trim()) {
+    if (
+      !ticketForm.subject.trim() ||
+      !ticketForm.description.trim()
+    ) {
       toast.error(
         isPT
           ? "Preenche o assunto e a descrição."
@@ -584,7 +587,11 @@ const MyPortal = () => {
       return;
     }
 
-    setTickets((current) => [data as SupportTicket, ...current]);
+    setTickets((current) => [
+      data as SupportTicket,
+      ...current,
+    ]);
+
     setSupportDialogOpen(false);
 
     setTicketForm({
@@ -611,11 +618,14 @@ const MyPortal = () => {
 
     if (Number.isNaN(date.getTime())) return "—";
 
-    return date.toLocaleDateString(isPT ? "pt-PT" : "en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
+    return date.toLocaleDateString(
+      isPT ? "pt-PT" : "en-GB",
+      {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      }
+    );
   };
 
   const formatTime = (value: string | null) => {
@@ -642,33 +652,46 @@ const MyPortal = () => {
     switch (status) {
       case "pending":
         return {
-          label: isPT ? "A aguardar aprovação" : "Awaiting approval",
-          className: "bg-amber-500/10 text-amber-400",
+          label: isPT
+            ? "A aguardar aprovação"
+            : "Awaiting approval",
+          className:
+            "bg-amber-500/10 text-amber-400",
         };
+
       case "approved":
         return {
           label: isPT ? "Aprovada" : "Approved",
-          className: "bg-emerald-500/10 text-emerald-400",
+          className:
+            "bg-emerald-500/10 text-emerald-400",
         };
+
       case "rejected":
         return {
           label: isPT ? "Recusada" : "Rejected",
-          className: "bg-red-500/10 text-red-400",
+          className:
+            "bg-red-500/10 text-red-400",
         };
+
       case "rescheduled":
         return {
           label: isPT ? "Reagendada" : "Rescheduled",
-          className: "bg-blue-500/10 text-blue-400",
+          className:
+            "bg-blue-500/10 text-blue-400",
         };
+
       case "cancelled":
         return {
           label: isPT ? "Cancelada" : "Cancelled",
-          className: "bg-white/[0.06] text-white/45",
+          className:
+            "bg-white/[0.06] text-white/45",
         };
+
       default:
         return {
           label: status,
-          className: "bg-white/[0.06] text-white/45",
+          className:
+            "bg-white/[0.06] text-white/45",
         };
     }
   };
@@ -689,7 +712,9 @@ const MyPortal = () => {
   };
 
   const upcomingReservations = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = new Date()
+      .toISOString()
+      .slice(0, 10);
 
     return reservations
       .filter(
@@ -713,7 +738,9 @@ const MyPortal = () => {
       exact: true,
     },
     {
-      label: isPT ? "Os meus equipamentos" : "My equipment",
+      label: isPT
+        ? "Os meus equipamentos"
+        : "My equipment",
       icon: Laptop,
       path: "/portal/equipment",
     },
@@ -734,7 +761,10 @@ const MyPortal = () => {
     },
   ];
 
-  const isActive = (path: string, exact?: boolean) =>
+  const isActive = (
+    path: string,
+    exact?: boolean
+  ) =>
     exact
       ? location.pathname === path
       : location.pathname.startsWith(path);
@@ -747,7 +777,9 @@ const MyPortal = () => {
     return (
       <div
         className={`flex min-h-screen items-center justify-center ${
-          isLight ? "bg-[#E5E7EB] text-slate-900" : "bg-[#080D1F] text-white"
+          isLight
+            ? "bg-[#E5E7EB] text-slate-900"
+            : "bg-[#080D1F] text-white"
         }`}
       >
         <div className="flex items-center gap-3 text-sm">
@@ -766,25 +798,48 @@ const MyPortal = () => {
 
   /* =========================================================
      CLASSES DE TEMA
-
-     O layout mantém-se igual. Só mudam as cores.
      ========================================================= */
 
-  const pageBg = isLight ? "bg-[#E5E7EB]" : "bg-[#080D1F]";
-  const sidebarBg = isLight ? "bg-[#F8FAFC]" : "bg-[#07101F]";
-  const cardBg = isLight ? "bg-[#F8FAFC]" : "bg-[#0D1730]";
-  const innerBg = isLight ? "bg-[#EEF1F4]" : "bg-[#0B162A]";
-  const mainText = isLight ? "text-slate-900" : "text-white";
-  const mutedText = isLight ? "text-slate-500" : "text-white/40";
-  const softText = isLight ? "text-slate-600" : "text-white/55";
-  const border = isLight ? "border-slate-200" : "border-white/[0.06]";
+  const pageBg = isLight
+    ? "bg-[#E5E7EB]"
+    : "bg-[#080D1F]";
+
+  const sidebarBg = isLight
+    ? "bg-[#F8FAFC]"
+    : "bg-[#07101F]";
+
+  const cardBg = isLight
+    ? "bg-[#F8FAFC]"
+    : "bg-[#0D1730]";
+
+  const innerBg = isLight
+    ? "bg-[#EEF1F4]"
+    : "bg-[#0B162A]";
+
+  const mainText = isLight
+    ? "text-slate-900"
+    : "text-white";
+
+  const mutedText = isLight
+    ? "text-slate-500"
+    : "text-white/40";
+
+  const softText = isLight
+    ? "text-slate-600"
+    : "text-white/55";
+
+  const border = isLight
+    ? "border-slate-200"
+    : "border-white/[0.06]";
 
   /* =========================================================
      PAGE
      ========================================================= */
 
   return (
-    <div className={`min-h-screen ${pageBg} ${mainText}`}>
+    <div
+      className={`min-h-screen ${pageBg} ${mainText}`}
+    >
       {/* =====================================================
           SIDEBAR
           ===================================================== */}
@@ -800,7 +855,9 @@ const MyPortal = () => {
 
       <aside
         className={`fixed inset-y-0 left-0 z-50 flex w-[268px] flex-col border-r ${border} ${sidebarBg} transition-transform duration-200 lg:translate-x-0 ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          sidebarOpen
+            ? "translate-x-0"
+            : "-translate-x-full"
         }`}
       >
         {/* LOGO */}
@@ -810,18 +867,26 @@ const MyPortal = () => {
         >
           <div>
             <div className="text-[29px] font-bold leading-none tracking-tight">
-              <span className="text-blue-400">Nex</span>
-              <span className={mainText}>Hop</span>
+              <span className="text-blue-400">
+                Nex
+              </span>
+              <span className={mainText}>
+                Hop
+              </span>
             </div>
 
-            <div className={`mt-1.5 text-xs ${mutedText}`}>
+            <div
+              className={`mt-1.5 text-xs ${mutedText}`}
+            >
               Employee Portal
             </div>
           </div>
 
           <button
             type="button"
-            onClick={() => setSidebarOpen(false)}
+            onClick={() =>
+              setSidebarOpen(false)
+            }
             className={`ml-auto lg:hidden ${mutedText}`}
           >
             <X size={18} />
@@ -834,7 +899,10 @@ const MyPortal = () => {
           <div className="space-y-1.5">
             {navigation.map((item) => {
               const Icon = item.icon;
-              const active = isActive(item.path, item.exact);
+              const active = isActive(
+                item.path,
+                item.exact
+              );
 
               return (
                 <button
@@ -875,11 +943,13 @@ const MyPortal = () => {
             })}
           </div>
 
-          {/* HELP - FICA NO FUNDO */}
+          {/* HELP */}
 
           <div
             className={`mt-auto rounded-xl border ${border} ${
-              isLight ? "bg-[#EEF1F4]" : "bg-[#0B162A]"
+              isLight
+                ? "bg-[#EEF1F4]"
+                : "bg-[#0B162A]"
             } p-4`}
           >
             <div className="mb-3 flex items-center gap-2">
@@ -887,12 +957,18 @@ const MyPortal = () => {
                 <CircleHelp size={15} />
               </div>
 
-              <span className={`text-xs font-semibold ${mainText}`}>
-                {isPT ? "Precisas de ajuda?" : "Need help?"}
+              <span
+                className={`text-xs font-semibold ${mainText}`}
+              >
+                {isPT
+                  ? "Precisas de ajuda?"
+                  : "Need help?"}
               </span>
             </div>
 
-            <p className={`text-[11px] leading-5 ${mutedText}`}>
+            <p
+              className={`text-[11px] leading-5 ${mutedText}`}
+            >
               {isPT
                 ? "A nossa equipa de IT está aqui para te ajudar."
                 : "Our IT team is here to help you."}
@@ -906,7 +982,9 @@ const MyPortal = () => {
               }}
               className="mt-4 flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-blue-500/40 bg-blue-500/[0.08] text-[11px] font-medium text-blue-400 transition hover:bg-blue-500/[0.14]"
             >
-              {isPT ? "Abrir pedido" : "Open request"}
+              {isPT
+                ? "Abrir pedido"
+                : "Open request"}
               <ChevronRight size={13} />
             </button>
           </div>
@@ -914,9 +992,22 @@ const MyPortal = () => {
 
         {/* FOOTER */}
 
-        <div className={`border-t ${border} px-7 py-5`}>
-          <div className={`text-xs ${mutedText}`}>NexHop Employee</div>
-          <div className={`mt-1 text-[10px] ${isLight ? "text-slate-400" : "text-white/20"}`}>
+        <div
+          className={`border-t ${border} px-7 py-5`}
+        >
+          <div
+            className={`text-xs ${mutedText}`}
+          >
+            NexHop Employee
+          </div>
+
+          <div
+            className={`mt-1 text-[10px] ${
+              isLight
+                ? "text-slate-400"
+                : "text-white/20"
+            }`}
+          >
             v1.0.0
           </div>
         </div>
@@ -931,13 +1022,17 @@ const MyPortal = () => {
 
         <header
           className={`sticky top-0 z-30 flex h-[84px] items-center justify-between border-b ${border} ${
-            isLight ? "bg-[#E5E7EB]/95" : "bg-[#080D1F]/95"
+            isLight
+              ? "bg-[#E5E7EB]/95"
+              : "bg-[#080D1F]/95"
           } px-5 backdrop-blur-xl sm:px-7`}
         >
           <div className="flex min-w-0 flex-1 items-center gap-4">
             <button
               type="button"
-              onClick={() => setSidebarOpen(true)}
+              onClick={() =>
+                setSidebarOpen(true)
+              }
               className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg lg:hidden ${
                 isLight
                   ? "text-slate-500 hover:bg-slate-200"
@@ -951,15 +1046,23 @@ const MyPortal = () => {
               <Search
                 size={17}
                 className={`absolute left-3.5 top-1/2 -translate-y-1/2 ${
-                  isLight ? "text-slate-400" : "text-white/30"
+                  isLight
+                    ? "text-slate-400"
+                    : "text-white/30"
                 }`}
               />
 
               <input
                 type="text"
-                placeholder={isPT ? "Pesquisar..." : "Search..."}
+                placeholder={
+                  isPT
+                    ? "Pesquisar..."
+                    : "Search..."
+                }
                 className={`h-11 w-full rounded-xl border ${border} ${
-                  isLight ? "bg-[#F8FAFC]" : "bg-[#0B1528]"
+                  isLight
+                    ? "bg-[#F8FAFC]"
+                    : "bg-[#0B1528]"
                 } pl-11 pr-4 text-sm outline-none ${
                   isLight
                     ? "text-slate-900 placeholder:text-slate-400"
@@ -978,7 +1081,9 @@ const MyPortal = () => {
               <button
                 type="button"
                 onClick={() =>
-                  setNotificationsOpen((current) => !current)
+                  setNotificationsOpen(
+                    (current) => !current
+                  )
                 }
                 className={`relative flex h-10 w-10 items-center justify-center rounded-full border ${border} ${
                   isLight
@@ -997,13 +1102,21 @@ const MyPortal = () => {
                 <div
                   className={`absolute right-0 top-[52px] z-50 w-[360px] overflow-hidden rounded-2xl border ${border} ${cardBg} shadow-2xl`}
                 >
-                  <div className={`flex items-center justify-between border-b ${border} px-4 py-3.5`}>
+                  <div
+                    className={`flex items-center justify-between border-b ${border} px-4 py-3.5`}
+                  >
                     <div>
-                      <h3 className={`text-sm font-semibold ${mainText}`}>
-                        {isPT ? "Notificações" : "Notifications"}
+                      <h3
+                        className={`text-sm font-semibold ${mainText}`}
+                      >
+                        {isPT
+                          ? "Notificações"
+                          : "Notifications"}
                       </h3>
 
-                      <p className={`mt-0.5 text-[10px] ${mutedText}`}>
+                      <p
+                        className={`mt-0.5 text-[10px] ${mutedText}`}
+                      >
                         {unreadNotifications > 0
                           ? isPT
                             ? `${unreadNotifications} por ler`
@@ -1017,10 +1130,14 @@ const MyPortal = () => {
                     {unreadNotifications > 0 && (
                       <button
                         type="button"
-                        onClick={markAllNotificationsAsRead}
+                        onClick={
+                          markAllNotificationsAsRead
+                        }
                         className="text-[10px] font-medium text-blue-400"
                       >
-                        {isPT ? "Marcar tudo como lido" : "Mark all as read"}
+                        {isPT
+                          ? "Marcar tudo como lido"
+                          : "Mark all as read"}
                       </button>
                     )}
                   </div>
@@ -1028,85 +1145,116 @@ const MyPortal = () => {
                   <div className="max-h-[390px] overflow-y-auto">
                     {notifications.length === 0 ? (
                       <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
-                        <div className={`flex h-11 w-11 items-center justify-center rounded-full ${
-                          isLight ? "bg-slate-100 text-slate-400" : "bg-white/[0.04] text-white/30"
-                        }`}>
+                        <div
+                          className={`flex h-11 w-11 items-center justify-center rounded-full ${
+                            isLight
+                              ? "bg-slate-100 text-slate-400"
+                              : "bg-white/[0.04] text-white/30"
+                          }`}
+                        >
                           <Bell size={18} />
                         </div>
 
-                        <p className={`mt-3 text-xs font-medium ${softText}`}>
-                          {isPT ? "Sem notificações" : "No notifications"}
+                        <p
+                          className={`mt-3 text-xs font-medium ${softText}`}
+                        >
+                          {isPT
+                            ? "Sem notificações"
+                            : "No notifications"}
                         </p>
 
-                        <p className={`mt-1 text-[10px] ${mutedText}`}>
+                        <p
+                          className={`mt-1 text-[10px] ${mutedText}`}
+                        >
                           {isPT
                             ? "Quando houver novidades, aparecem aqui."
                             : "New updates will appear here."}
                         </p>
                       </div>
                     ) : (
-                      notifications.map((notification) => (
-                        <button
-                          key={notification.id}
-                          type="button"
-                          onClick={() =>
-                            markNotificationAsRead(notification.id)
-                          }
-                          className={`flex w-full gap-3 border-b ${border} px-4 py-3.5 text-left transition ${
-                            !notification.read
-                              ? isLight
-                                ? "bg-blue-50"
-                                : "bg-blue-500/[0.035]"
-                              : ""
-                          } ${
-                            isLight
-                              ? "hover:bg-slate-50"
-                              : "hover:bg-white/[0.035]"
-                          }`}
-                        >
-                          <div
-                            className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
-                              notification.type === "success"
-                                ? "bg-emerald-500/10 text-emerald-500"
-                                : notification.type === "warning"
-                                  ? "bg-amber-500/10 text-amber-500"
-                                  : notification.type === "error"
-                                    ? "bg-red-500/10 text-red-500"
-                                    : "bg-blue-500/10 text-blue-500"
+                      notifications.map(
+                        (notification) => (
+                          <button
+                            key={notification.id}
+                            type="button"
+                            onClick={() =>
+                              markNotificationAsRead(
+                                notification.id
+                              )
+                            }
+                            className={`flex w-full gap-3 border-b ${border} px-4 py-3.5 text-left transition ${
+                              !notification.read
+                                ? isLight
+                                  ? "bg-blue-50"
+                                  : "bg-blue-500/[0.035]"
+                                : ""
+                            } ${
+                              isLight
+                                ? "hover:bg-slate-50"
+                                : "hover:bg-white/[0.035]"
                             }`}
                           >
-                            <Bell size={15} />
-                          </div>
-
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-start gap-2">
-                              <p className={`flex-1 text-xs font-semibold ${mainText}`}>
-                                {notification.title}
-                              </p>
-
-                              {!notification.read && (
-                                <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />
-                              )}
+                            <div
+                              className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+                                notification.type ===
+                                "success"
+                                  ? "bg-emerald-500/10 text-emerald-500"
+                                  : notification.type ===
+                                      "warning"
+                                    ? "bg-amber-500/10 text-amber-500"
+                                    : notification.type ===
+                                        "error"
+                                      ? "bg-red-500/10 text-red-500"
+                                      : "bg-blue-500/10 text-blue-500"
+                              }`}
+                            >
+                              <Bell size={15} />
                             </div>
 
-                            <p className={`mt-1 text-[10px] leading-4 ${mutedText}`}>
-                              {notification.message}
-                            </p>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-start gap-2">
+                                <p
+                                  className={`flex-1 text-xs font-semibold ${mainText}`}
+                                >
+                                  {notification.title}
+                                </p>
 
-                            <p className={`mt-1.5 text-[9px] ${isLight ? "text-slate-400" : "text-white/25"}`}>
-                              {new Date(notification.created_at).toLocaleString(
-                                isPT ? "pt-PT" : "en-GB",
-                                {
-                                  day: "2-digit",
-                                  month: "2-digit",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                }
-                              )}
-                            </p>
-                          </div>
-                        </button>
-                      ))
+                                {!notification.read && (
+                                  <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />
+                                )}
+                              </div>
+
+                              <p
+                                className={`mt-1 text-[10px] leading-4 ${mutedText}`}
+                              >
+                                {notification.message}
+                              </p>
+
+                              <p
+                                className={`mt-1.5 text-[9px] ${
+                                  isLight
+                                    ? "text-slate-400"
+                                    : "text-white/25"
+                                }`}
+                              >
+                                {new Date(
+                                  notification.created_at
+                                ).toLocaleString(
+                                  isPT
+                                    ? "pt-PT"
+                                    : "en-GB",
+                                  {
+                                    day: "2-digit",
+                                    month: "2-digit",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  }
+                                )}
+                              </p>
+                            </div>
+                          </button>
+                        )
+                      )
                     )}
                   </div>
                 </div>
@@ -1115,10 +1263,16 @@ const MyPortal = () => {
 
             {/* PROFILE MENU */}
 
-            <div className={`relative border-l ${border} pl-3 sm:pl-4`}>
+            <div
+              className={`relative border-l ${border} pl-3 sm:pl-4`}
+            >
               <button
                 type="button"
-                onClick={() => setProfileOpen((current) => !current)}
+                onClick={() =>
+                  setProfileOpen(
+                    (current) => !current
+                  )
+                }
                 className="flex items-center gap-3"
               >
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#263A5C] text-xs font-semibold text-white">
@@ -1126,11 +1280,15 @@ const MyPortal = () => {
                 </div>
 
                 <div className="hidden text-left leading-tight sm:block">
-                  <div className={`text-xs font-semibold ${mainText}`}>
+                  <div
+                    className={`text-xs font-semibold ${mainText}`}
+                  >
                     {userName}
                   </div>
 
-                  <div className={`mt-1 text-[10px] ${mutedText}`}>
+                  <div
+                    className={`mt-1 text-[10px] ${mutedText}`}
+                  >
                     Employee
                   </div>
                 </div>
@@ -1145,19 +1303,30 @@ const MyPortal = () => {
                 <div
                   className={`absolute right-0 top-[52px] z-50 w-60 rounded-2xl border ${border} ${cardBg} p-2 shadow-2xl`}
                 >
-                  {/* INFO BLOQUEADA */}
+                  {/* INFO */}
 
-                  <div className={`border-b ${border} px-3 py-3`}>
-                    <p className={`text-xs font-semibold ${mainText}`}>
+                  <div
+                    className={`border-b ${border} px-3 py-3`}
+                  >
+                    <p
+                      className={`text-xs font-semibold ${mainText}`}
+                    >
                       {userName}
                     </p>
 
-                    <p className={`mt-1 text-[10px] ${mutedText}`}>
-                      {user?.email || profile?.email || "—"}
+                    <p
+                      className={`mt-1 text-[10px] ${mutedText}`}
+                    >
+                      {user?.email ||
+                        profile?.email ||
+                        "—"}
                     </p>
 
-                    <p className={`mt-1 text-[10px] ${mutedText}`}>
-                      {profile?.department || "—"}
+                    <p
+                      className={`mt-1 text-[10px] ${mutedText}`}
+                    >
+                      {profile?.department ||
+                        "—"}
                       {profile?.position
                         ? ` · ${profile.position}`
                         : ""}
@@ -1167,14 +1336,20 @@ const MyPortal = () => {
                   {/* LANGUAGE */}
 
                   <div className="px-2 py-2">
-                    <p className={`mb-2 px-1 text-[9px] font-semibold uppercase tracking-wider ${mutedText}`}>
-                      {isPT ? "Idioma" : "Language"}
+                    <p
+                      className={`mb-2 px-1 text-[9px] font-semibold uppercase tracking-wider ${mutedText}`}
+                    >
+                      {isPT
+                        ? "Idioma"
+                        : "Language"}
                     </p>
 
                     <div className="grid grid-cols-2 gap-1">
                       <button
                         type="button"
-                        onClick={() => setLanguage("pt")}
+                        onClick={() =>
+                          setLanguage("pt")
+                        }
                         className={`rounded-lg px-2 py-2 text-[10px] ${
                           language === "pt"
                             ? "bg-blue-500/10 text-blue-400"
@@ -1188,7 +1363,9 @@ const MyPortal = () => {
 
                       <button
                         type="button"
-                        onClick={() => setLanguage("en")}
+                        onClick={() =>
+                          setLanguage("en")
+                        }
                         className={`rounded-lg px-2 py-2 text-[10px] ${
                           language === "en"
                             ? "bg-blue-500/10 text-blue-400"
@@ -1204,15 +1381,23 @@ const MyPortal = () => {
 
                   {/* THEME */}
 
-                  <div className={`border-t ${border} px-2 py-2`}>
-                    <p className={`mb-2 px-1 text-[9px] font-semibold uppercase tracking-wider ${mutedText}`}>
-                      {isPT ? "Tema" : "Theme"}
+                  <div
+                    className={`border-t ${border} px-2 py-2`}
+                  >
+                    <p
+                      className={`mb-2 px-1 text-[9px] font-semibold uppercase tracking-wider ${mutedText}`}
+                    >
+                      {isPT
+                        ? "Tema"
+                        : "Theme"}
                     </p>
 
                     <div className="grid grid-cols-2 gap-1">
                       <button
                         type="button"
-                        onClick={() => setTheme("dark")}
+                        onClick={() =>
+                          setTheme("dark")
+                        }
                         className={`flex items-center justify-center gap-2 rounded-lg px-2 py-2 text-[10px] ${
                           !isLight
                             ? "bg-blue-500/10 text-blue-400"
@@ -1220,12 +1405,16 @@ const MyPortal = () => {
                         }`}
                       >
                         <Moon size={13} />
-                        {isPT ? "Escuro" : "Dark"}
+                        {isPT
+                          ? "Escuro"
+                          : "Dark"}
                       </button>
 
                       <button
                         type="button"
-                        onClick={() => setTheme("light")}
+                        onClick={() =>
+                          setTheme("light")
+                        }
                         className={`flex items-center justify-center gap-2 rounded-lg px-2 py-2 text-[10px] ${
                           isLight
                             ? "bg-blue-500/10 text-blue-600"
@@ -1233,16 +1422,43 @@ const MyPortal = () => {
                         }`}
                       >
                         <Sun size={13} />
-                        {isPT ? "Claro" : "Light"}
+                        {isPT
+                          ? "Claro"
+                          : "Light"}
                       </button>
                     </div>
                   </div>
 
-                  {/* LOGOUT */}
+                  {/* =================================================
+                      LOGOUT — CORRIGIDO
+                      ================================================= */}
 
                   <button
                     type="button"
-                    onClick={signOut}
+                    onClick={async () => {
+                      try {
+                        await signOut();
+
+                        setProfileOpen(false);
+                        setNotificationsOpen(false);
+                        setSidebarOpen(false);
+
+                        navigate("/login", {
+                          replace: true,
+                        });
+                      } catch (error) {
+                        console.error(
+                          "Erro ao terminar sessão:",
+                          error
+                        );
+
+                        toast.error(
+                          isPT
+                            ? "Não foi possível terminar a sessão."
+                            : "Could not sign out."
+                        );
+                      }
+                    }}
                     className={`mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-xs ${
                       isLight
                         ? "text-slate-600 hover:bg-slate-100 hover:text-red-600"
@@ -1250,7 +1466,10 @@ const MyPortal = () => {
                     }`}
                   >
                     <LogOut size={15} />
-                    {isPT ? "Terminar sessão" : "Sign out"}
+
+                    {isPT
+                      ? "Terminar sessão"
+                      : "Sign out"}
                   </button>
                 </div>
               )}
@@ -1263,14 +1482,10 @@ const MyPortal = () => {
             ===================================================== */}
 
         <main className="px-5 py-7 sm:px-7 lg:px-9">
-          {/* ===================================================
-              HOME
-              =================================================== */}
+          {/* HOME */}
 
           {currentPage === "/" && (
             <>
-              {/* HERO */}
-
               <section
                 className={`relative mb-6 overflow-hidden rounded-2xl border ${border} ${cardBg}`}
               >
@@ -1280,7 +1495,9 @@ const MyPortal = () => {
                   <div>
                     <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-blue-400/80">
                       {new Date().toLocaleDateString(
-                        isPT ? "pt-PT" : "en-GB",
+                        isPT
+                          ? "pt-PT"
+                          : "en-GB",
                         {
                           weekday: "long",
                           day: "2-digit",
@@ -1289,11 +1506,18 @@ const MyPortal = () => {
                       )}
                     </p>
 
-                    <h1 className={`mt-3 text-3xl font-bold tracking-tight sm:text-4xl ${mainText}`}>
-                      {isPT ? "Olá" : "Hello"}, {firstName}! 👋
+                    <h1
+                      className={`mt-3 text-3xl font-bold tracking-tight sm:text-4xl ${mainText}`}
+                    >
+                      {isPT
+                        ? "Olá"
+                        : "Hello"}
+                      , {firstName}! 👋
                     </h1>
 
-                    <p className={`mt-3 max-w-[590px] text-sm leading-6 ${mutedText}`}>
+                    <p
+                      className={`mt-3 max-w-[590px] text-sm leading-6 ${mutedText}`}
+                    >
                       {isPT
                         ? "Tudo o que precisas, num só lugar. Gere os teus equipamentos, pedidos de suporte e reservas de forma simples e rápida."
                         : "Everything you need, in one place. Manage your equipment, support requests and reservations quickly and easily."}
@@ -1302,13 +1526,21 @@ const MyPortal = () => {
 
                   <div
                     className={`hidden h-[160px] overflow-hidden rounded-2xl border ${border} ${
-                      isLight ? "bg-[#EEF1F4]" : "bg-[#101E35]"
+                      isLight
+                        ? "bg-[#EEF1F4]"
+                        : "bg-[#101E35]"
                     } lg:block`}
                   >
                     <div className="flex h-full flex-col justify-center px-6">
-                      <div className={`text-sm ${mutedText}`}>Work</div>
+                      <div
+                        className={`text-sm ${mutedText}`}
+                      >
+                        Work
+                      </div>
 
-                      <div className={`mt-1 text-3xl font-semibold leading-tight ${mainText}`}>
+                      <div
+                        className={`mt-1 text-3xl font-semibold leading-tight ${mainText}`}
+                      >
                         Smarter
                         <br />
                         Together
@@ -1320,26 +1552,40 @@ const MyPortal = () => {
                 </div>
               </section>
 
-              {/* STATS */}
-
               <section className="mb-6 grid grid-cols-2 gap-3 xl:grid-cols-4">
                 <StatCard
                   icon={<Laptop size={20} />}
-                  value={String(equipment.length)}
-                  label={isPT ? "Equipamentos" : "Equipment"}
-                  description={isPT ? "Atribuídos a ti" : "Assigned to you"}
+                  value={String(
+                    equipment.length
+                  )}
+                  label={
+                    isPT
+                      ? "Equipamentos"
+                      : "Equipment"
+                  }
+                  description={
+                    isPT
+                      ? "Atribuídos a ti"
+                      : "Assigned to you"
+                  }
                   light={isLight}
                 />
 
                 <StatCard
                   icon={<Headphones size={20} />}
                   value={String(tickets.length)}
-                  label={isPT ? "Pedidos de suporte" : "Support requests"}
+                  label={
+                    isPT
+                      ? "Pedidos de suporte"
+                      : "Support requests"
+                  }
                   description={
                     tickets.filter(
                       (item) =>
-                        item.status !== "resolved" &&
-                        item.status !== "closed"
+                        item.status !==
+                          "resolved" &&
+                        item.status !==
+                          "closed"
                     ).length
                       ? isPT
                         ? `${tickets.filter((item) => item.status !== "resolved" && item.status !== "closed").length} em aberto`
@@ -1352,17 +1598,35 @@ const MyPortal = () => {
                 />
 
                 <StatCard
-                  icon={<CalendarDays size={20} />}
-                  value={String(upcomingReservations.length)}
-                  label={isPT ? "Reservas" : "Reservations"}
-                  description={isPT ? "Próximas reservas" : "Upcoming reservations"}
+                  icon={
+                    <CalendarDays size={20} />
+                  }
+                  value={String(
+                    upcomingReservations.length
+                  )}
+                  label={
+                    isPT
+                      ? "Reservas"
+                      : "Reservations"
+                  }
+                  description={
+                    isPT
+                      ? "Próximas reservas"
+                      : "Upcoming reservations"
+                  }
                   light={isLight}
                 />
 
                 <StatCard
                   icon={<Bell size={20} />}
-                  value={String(unreadNotifications)}
-                  label={isPT ? "Alertas" : "Alerts"}
+                  value={String(
+                    unreadNotifications
+                  )}
+                  label={
+                    isPT
+                      ? "Alertas"
+                      : "Alerts"
+                  }
                   description={
                     unreadNotifications
                       ? isPT
@@ -1376,17 +1640,25 @@ const MyPortal = () => {
                 />
               </section>
 
-              {/* MAIN GRID */}
-
               <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
                 <div className="space-y-6">
-                  {/* EQUIPMENT + SUPPORT */}
-
                   <div className="grid gap-6 lg:grid-cols-2">
                     <PortalCard
-                      title={isPT ? "Os meus equipamentos" : "My equipment"}
-                      action={isPT ? "Ver todos" : "View all"}
-                      onAction={() => navigate("/portal/equipment")}
+                      title={
+                        isPT
+                          ? "Os meus equipamentos"
+                          : "My equipment"
+                      }
+                      action={
+                        isPT
+                          ? "Ver todos"
+                          : "View all"
+                      }
+                      onAction={() =>
+                        navigate(
+                          "/portal/equipment"
+                        )
+                      }
                       light={isLight}
                     >
                       {equipment.length === 0 ? (
@@ -1400,29 +1672,53 @@ const MyPortal = () => {
                           light={isLight}
                         />
                       ) : (
-                        <div className={`divide-y ${isLight ? "divide-slate-200" : "divide-white/[0.05]"}`}>
-                          {equipment.slice(0, 3).map((item) => (
-                            <EquipmentRow
-                              key={item.id}
-                              item={item}
-                              isPT={isPT}
-                              light={isLight}
-                              getStatus={getEquipmentStatus}
-                            />
-                          ))}
+                        <div
+                          className={`divide-y ${
+                            isLight
+                              ? "divide-slate-200"
+                              : "divide-white/[0.05]"
+                          }`}
+                        >
+                          {equipment
+                            .slice(0, 3)
+                            .map((item) => (
+                              <EquipmentRow
+                                key={item.id}
+                                item={item}
+                                isPT={isPT}
+                                light={isLight}
+                                getStatus={
+                                  getEquipmentStatus
+                                }
+                              />
+                            ))}
                         </div>
                       )}
                     </PortalCard>
 
                     <PortalCard
-                      title={isPT ? "Pedidos de suporte" : "Support requests"}
-                      action={isPT ? "Ver todos" : "View all"}
-                      onAction={() => navigate("/portal/support")}
+                      title={
+                        isPT
+                          ? "Pedidos de suporte"
+                          : "Support requests"
+                      }
+                      action={
+                        isPT
+                          ? "Ver todos"
+                          : "View all"
+                      }
+                      onAction={() =>
+                        navigate(
+                          "/portal/support"
+                        )
+                      }
                       light={isLight}
                     >
                       {tickets.length === 0 ? (
                         <EmptyState
-                          icon={<LifeBuoy size={18} />}
+                          icon={
+                            <LifeBuoy size={18} />
+                          }
                           text={
                             isPT
                               ? "Ainda não tens pedidos."
@@ -1432,30 +1728,40 @@ const MyPortal = () => {
                         />
                       ) : (
                         <div className="space-y-2">
-                          {tickets.slice(0, 2).map((ticket) => (
-                            <TicketRow
-                              key={ticket.id}
-                              ticket={ticket}
-                              isPT={isPT}
-                              light={isLight}
-                              getStatus={getTicketStatus}
-                            />
-                          ))}
+                          {tickets
+                            .slice(0, 2)
+                            .map((ticket) => (
+                              <TicketRow
+                                key={ticket.id}
+                                ticket={ticket}
+                                isPT={isPT}
+                                light={isLight}
+                                getStatus={
+                                  getTicketStatus
+                                }
+                              />
+                            ))}
 
                           <button
                             type="button"
-                            onClick={() => setSupportDialogOpen(true)}
+                            onClick={() =>
+                              setSupportDialogOpen(
+                                true
+                              )
+                            }
                             className="mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-blue-500/40 bg-blue-500/[0.06] text-xs font-medium text-blue-400 hover:bg-blue-500/[0.12]"
                           >
-                            <span className="text-base">+</span>
-                            {isPT ? "Abrir novo pedido" : "Open new request"}
+                            <span className="text-base">
+                              +
+                            </span>
+                            {isPT
+                              ? "Abrir novo pedido"
+                              : "Open new request"}
                           </button>
                         </div>
                       )}
                     </PortalCard>
                   </div>
-
-                  {/* BANNER */}
 
                   <div
                     className={`relative overflow-hidden rounded-2xl border ${border} ${cardBg}`}
@@ -1467,13 +1773,17 @@ const MyPortal = () => {
                         NexHop Employee
                       </p>
 
-                      <h2 className={`mt-2 text-2xl font-bold tracking-tight ${mainText}`}>
+                      <h2
+                        className={`mt-2 text-2xl font-bold tracking-tight ${mainText}`}
+                      >
                         {isPT
                           ? "A tecnologia ao teu lado."
                           : "Technology by your side."}
                       </h2>
 
-                      <p className={`mt-2 text-xs ${mutedText}`}>
+                      <p
+                        className={`mt-2 text-xs ${mutedText}`}
+                      >
                         {isPT
                           ? "Pessoas. Equipamentos. Soluções."
                           : "People. Equipment. Solutions."}
@@ -1484,18 +1794,31 @@ const MyPortal = () => {
                   </div>
                 </div>
 
-                {/* RIGHT */}
-
                 <div className="space-y-6">
                   <PortalCard
-                    title={isPT ? "Próximas reservas" : "Upcoming reservations"}
-                    action={isPT ? "Ver todas" : "View all"}
-                    onAction={() => navigate("/portal/reservations")}
+                    title={
+                      isPT
+                        ? "Próximas reservas"
+                        : "Upcoming reservations"
+                    }
+                    action={
+                      isPT
+                        ? "Ver todas"
+                        : "View all"
+                    }
+                    onAction={() =>
+                      navigate(
+                        "/portal/reservations"
+                      )
+                    }
                     light={isLight}
                   >
-                    {upcomingReservations.length === 0 ? (
+                    {upcomingReservations.length ===
+                    0 ? (
                       <EmptyState
-                        icon={<CalendarDays size={18} />}
+                        icon={
+                          <CalendarDays size={18} />
+                        }
                         text={
                           isPT
                             ? "Não tens reservas próximas."
@@ -1505,48 +1828,80 @@ const MyPortal = () => {
                       />
                     ) : (
                       <div className="space-y-2">
-                        {upcomingReservations.map((reservation) => (
-                          <ReservationMini
-                            key={reservation.id}
-                            reservation={reservation}
-                            isPT={isPT}
-                            light={isLight}
-                            getStatus={getReservationStatus}
-                          />
-                        ))}
+                        {upcomingReservations.map(
+                          (reservation) => (
+                            <ReservationMini
+                              key={reservation.id}
+                              reservation={
+                                reservation
+                              }
+                              isPT={isPT}
+                              light={isLight}
+                              getStatus={
+                                getReservationStatus
+                              }
+                            />
+                          )
+                        )}
                       </div>
                     )}
 
                     <button
                       type="button"
-                      onClick={() => setReservationDialogOpen(true)}
+                      onClick={() =>
+                        setReservationDialogOpen(
+                          true
+                        )
+                      }
                       className="mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-blue-500/50 bg-blue-500/[0.07] text-xs font-medium text-blue-400 hover:bg-blue-500/[0.14]"
                     >
                       <CalendarDays size={14} />
-                      {isPT ? "Nova reserva" : "New reservation"}
+                      {isPT
+                        ? "Nova reserva"
+                        : "New reservation"}
                     </button>
                   </PortalCard>
 
                   <PortalCard
-                    title={isPT ? "Links úteis" : "Useful links"}
+                    title={
+                      isPT
+                        ? "Links úteis"
+                        : "Useful links"
+                    }
                     light={isLight}
                   >
                     <div className="space-y-1">
                       <UsefulLink
-                        icon={<FileText size={17} />}
-                        label={isPT ? "Guias e manuais" : "Guides and manuals"}
+                        icon={
+                          <FileText size={17} />
+                        }
+                        label={
+                          isPT
+                            ? "Guias e manuais"
+                            : "Guides and manuals"
+                        }
                         light={isLight}
                       />
 
                       <UsefulLink
-                        icon={<LifeBuoy size={17} />}
-                        label={isPT ? "Políticas da empresa" : "Company policies"}
+                        icon={
+                          <LifeBuoy size={17} />
+                        }
+                        label={
+                          isPT
+                            ? "Políticas da empresa"
+                            : "Company policies"
+                        }
                         light={isLight}
                       />
 
                       <button
                         type="button"
-                        onClick={() => navigate("/portal/support")}
+                        onClick={() =>
+                          navigate(
+                            "/portal/support"
+                          )
+                        }
                         className={`flex w-full items-center gap-3 rounded-lg px-2.5 py-3 text-left text-xs ${
                           isLight
                             ? "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
@@ -1554,14 +1909,20 @@ const MyPortal = () => {
                         }`}
                       >
                         <Headphones size={17} />
+
                         <span className="flex-1">
-                          {isPT ? "Contactar IT" : "Contact IT"}
+                          {isPT
+                            ? "Contactar IT"
+                            : "Contact IT"}
                         </span>
+
                         <ChevronRight size={14} />
                       </button>
 
                       <UsefulLink
-                        icon={<CircleHelp size={17} />}
+                        icon={
+                          <CircleHelp size={17} />
+                        }
                         label="FAQ"
                         light={isLight}
                       />
@@ -1572,9 +1933,7 @@ const MyPortal = () => {
             </>
           )}
 
-          {/* ===================================================
-              EQUIPMENT
-              =================================================== */}
+          {/* EQUIPMENT */}
 
           {currentPage === "/equipment" && (
             <PortalSectionHeader
@@ -1588,7 +1947,9 @@ const MyPortal = () => {
             >
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {equipment.length === 0 ? (
-                  <div className={`md:col-span-2 xl:col-span-3 rounded-2xl border ${border} ${cardBg} p-10`}>
+                  <div
+                    className={`md:col-span-2 xl:col-span-3 rounded-2xl border ${border} ${cardBg} p-10`}
+                  >
                     <EmptyState
                       icon={<Laptop size={22} />}
                       text={
@@ -1606,7 +1967,9 @@ const MyPortal = () => {
                       item={item}
                       isPT={isPT}
                       light={isLight}
-                      getStatus={getEquipmentStatus}
+                      getStatus={
+                        getEquipmentStatus
+                      }
                       formatDate={formatDate}
                     />
                   ))
@@ -1615,9 +1978,7 @@ const MyPortal = () => {
             </PortalSectionHeader>
           )}
 
-          {/* ===================================================
-              SUPPORT
-              =================================================== */}
+          {/* SUPPORT */}
 
           {currentPage === "/support" && (
             <PortalSectionHeader
@@ -1632,9 +1993,13 @@ const MyPortal = () => {
               <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
                 <div className="space-y-3">
                   {tickets.length === 0 ? (
-                    <div className={`rounded-2xl border ${border} ${cardBg} p-10`}>
+                    <div
+                      className={`rounded-2xl border ${border} ${cardBg} p-10`}
+                    >
                       <EmptyState
-                        icon={<LifeBuoy size={22} />}
+                        icon={
+                          <LifeBuoy size={22} />
+                        }
                         text={
                           isPT
                             ? "Ainda não tens pedidos de suporte."
@@ -1655,21 +2020,32 @@ const MyPortal = () => {
                           </div>
 
                           <div className="min-w-0 flex-1">
-                            <p className={`text-sm font-semibold ${mainText}`}>
+                            <p
+                              className={`text-sm font-semibold ${mainText}`}
+                            >
                               {ticket.subject}
                             </p>
 
-                            <p className={`mt-1 text-xs ${mutedText}`}>
-                              #{ticket.id} · {formatDate(ticket.created_at)}
+                            <p
+                              className={`mt-1 text-xs ${mutedText}`}
+                            >
+                              #{ticket.id} ·{" "}
+                              {formatDate(
+                                ticket.created_at
+                              )}
                             </p>
 
-                            <p className={`mt-3 text-xs leading-5 ${softText}`}>
+                            <p
+                              className={`mt-3 text-xs leading-5 ${softText}`}
+                            >
                               {ticket.description}
                             </p>
                           </div>
 
                           <span className="shrink-0 rounded-full bg-blue-500/10 px-3 py-1.5 text-[10px] font-medium text-blue-400">
-                            {getTicketStatus(ticket.status)}
+                            {getTicketStatus(
+                              ticket.status
+                            )}
                           </span>
                         </div>
                       </div>
@@ -1693,9 +2069,7 @@ const MyPortal = () => {
             </PortalSectionHeader>
           )}
 
-          {/* ===================================================
-              RESERVATIONS
-              =================================================== */}
+          {/* RESERVATIONS */}
 
           {currentPage === "/reservations" && (
             <PortalSectionHeader
@@ -1710,9 +2084,13 @@ const MyPortal = () => {
               <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
                 <div className="space-y-3">
                   {reservations.length === 0 ? (
-                    <div className={`rounded-2xl border ${border} ${cardBg} p-10`}>
+                    <div
+                      className={`rounded-2xl border ${border} ${cardBg} p-10`}
+                    >
                       <EmptyState
-                        icon={<CalendarDays size={22} />}
+                        icon={
+                          <CalendarDays size={22} />
+                        }
                         text={
                           isPT
                             ? "Ainda não tens reservas."
@@ -1722,88 +2100,141 @@ const MyPortal = () => {
                       />
                     </div>
                   ) : (
-                    reservations.map((reservation) => {
-                      const status = getReservationStatus(reservation.status);
+                    reservations.map(
+                      (reservation) => {
+                        const status =
+                          getReservationStatus(
+                            reservation.status
+                          );
 
-                      return (
-                        <div
-                          key={reservation.id}
-                          className={`rounded-2xl border ${border} ${cardBg} p-5`}
-                        >
-                          <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
-                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400">
-                              <Car size={19} />
-                            </div>
+                        return (
+                          <div
+                            key={reservation.id}
+                            className={`rounded-2xl border ${border} ${cardBg} p-5`}
+                          >
+                            <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+                              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400">
+                                <Car size={19} />
+                              </div>
 
-                            <div className="min-w-0 flex-1">
-                              <p className={`text-sm font-semibold ${mainText}`}>
-                                {reservation.title}
-                              </p>
-
-                              <p className={`mt-1 text-xs ${mutedText}`}>
-                                {formatDate(reservation.reservation_date)} ·{" "}
-                                {formatTime(reservation.start_time)} -{" "}
-                                {formatTime(reservation.end_time)}
-                              </p>
-
-                              {reservation.location && (
-                                <p className={`mt-1 text-[10px] ${mutedText}`}>
-                                  {reservation.location}
+                              <div className="min-w-0 flex-1">
+                                <p
+                                  className={`text-sm font-semibold ${mainText}`}
+                                >
+                                  {
+                                    reservation.title
+                                  }
                                 </p>
-                              )}
 
-                              {reservation.response_note && (
-                                <div className={`mt-3 rounded-lg border ${border} ${
-                                  isLight ? "bg-[#EEF1F4]" : "bg-white/[0.02]"
-                                } px-3 py-2.5`}>
-                                  <p className={`text-[10px] font-semibold ${softText}`}>
-                                    {isPT ? "Resposta do IT" : "IT response"}
-                                  </p>
+                                <p
+                                  className={`mt-1 text-xs ${mutedText}`}
+                                >
+                                  {formatDate(
+                                    reservation.reservation_date
+                                  )}{" "}
+                                  ·{" "}
+                                  {formatTime(
+                                    reservation.start_time
+                                  )}{" "}
+                                  -{" "}
+                                  {formatTime(
+                                    reservation.end_time
+                                  )}
+                                </p>
 
-                                  <p className={`mt-1 text-xs ${mutedText}`}>
-                                    {reservation.response_note}
-                                  </p>
-                                </div>
-                              )}
-
-                              {reservation.status === "rescheduled" &&
-                                reservation.original_date && (
-                                  <p className={`mt-2 text-[10px] ${mutedText}`}>
-                                    {isPT ? "Data original:" : "Original date:"}{" "}
-                                    {formatDate(reservation.original_date)} ·{" "}
-                                    {formatTime(reservation.original_start_time)} -{" "}
-                                    {formatTime(reservation.original_end_time)}
+                                {reservation.location && (
+                                  <p
+                                    className={`mt-1 text-[10px] ${mutedText}`}
+                                  >
+                                    {
+                                      reservation.location
+                                    }
                                   </p>
                                 )}
-                            </div>
 
-                            <div className="flex shrink-0 flex-col items-start gap-2 lg:items-end">
-                              <span
-                                className={`rounded-full px-3 py-1.5 text-[10px] font-medium ${status.className}`}
-                              >
-                                {status.label}
-                              </span>
+                                {reservation.response_note && (
+                                  <div
+                                    className={`mt-3 rounded-lg border ${border} ${
+                                      isLight
+                                        ? "bg-[#EEF1F4]"
+                                        : "bg-white/[0.02]"
+                                    } px-3 py-2.5`}
+                                  >
+                                    <p
+                                      className={`text-[10px] font-semibold ${softText}`}
+                                    >
+                                      {isPT
+                                        ? "Resposta do IT"
+                                        : "IT response"}
+                                    </p>
 
-                              {reservation.status === "pending" && (
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    cancelReservation(reservation.id)
-                                  }
-                                  className={`text-[10px] ${
-                                    isLight
-                                      ? "text-slate-400 hover:text-red-600"
-                                      : "text-white/30 hover:text-red-400"
-                                  }`}
+                                    <p
+                                      className={`mt-1 text-xs ${mutedText}`}
+                                    >
+                                      {
+                                        reservation.response_note
+                                      }
+                                    </p>
+                                  </div>
+                                )}
+
+                                {reservation.status ===
+                                  "rescheduled" &&
+                                  reservation.original_date && (
+                                    <p
+                                      className={`mt-2 text-[10px] ${mutedText}`}
+                                    >
+                                      {isPT
+                                        ? "Data original:"
+                                        : "Original date:"}{" "}
+                                      {formatDate(
+                                        reservation.original_date
+                                      )}{" "}
+                                      ·{" "}
+                                      {formatTime(
+                                        reservation.original_start_time
+                                      )}{" "}
+                                      -{" "}
+                                      {formatTime(
+                                        reservation.original_end_time
+                                      )}
+                                    </p>
+                                  )}
+                              </div>
+
+                              <div className="flex shrink-0 flex-col items-start gap-2 lg:items-end">
+                                <span
+                                  className={`rounded-full px-3 py-1.5 text-[10px] font-medium ${status.className}`}
                                 >
-                                  {isPT ? "Cancelar pedido" : "Cancel request"}
-                                </button>
-                              )}
+                                  {status.label}
+                                </span>
+
+                                {reservation.status ===
+                                  "pending" && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      cancelReservation(
+                                        reservation.id
+                                      )
+                                    }
+                                    className={`text-[10px] ${
+                                      isLight
+                                        ? "text-slate-400 hover:text-red-600"
+                                        : "text-white/30 hover:text-red-400"
+                                    }`}
+                                  >
+                                    {isPT
+                                      ? "Cancelar pedido"
+                                      : "Cancel request"}
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })
+                        );
+                      }
+                    )
                   )}
                 </div>
 
@@ -1815,20 +2246,19 @@ const MyPortal = () => {
                   softText={softText}
                   border={border}
                   reservationForm={reservationForm}
-                  setReservationForm={setReservationForm}
-                  savingReservation={savingReservation}
+                  setReservationForm={
+                    setReservationForm
+                  }
+                  savingReservation={
+                    savingReservation
+                  }
                   onSubmit={createReservation}
                 />
               </div>
             </PortalSectionHeader>
           )}
 
-          {/* ===================================================
-              PROFILE
-
-              Tudo bloqueado exceto idioma e tema, que ficam
-              no menu superior. Aqui apenas mostramos dados.
-              =================================================== */}
+          {/* PROFILE */}
 
           {currentPage === "/profile" && (
             <PortalSectionHeader
@@ -1841,74 +2271,125 @@ const MyPortal = () => {
               light={isLight}
             >
               <div className="grid gap-5 lg:grid-cols-[1fr_300px]">
-                <div className={`rounded-2xl border ${border} ${cardBg} p-6`}>
+                <div
+                  className={`rounded-2xl border ${border} ${cardBg} p-6`}
+                >
                   <div className="mb-6 flex items-center gap-4">
                     <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#263A5C] text-lg font-semibold text-white">
                       {initials}
                     </div>
 
                     <div>
-                      <h2 className={`text-lg font-semibold ${mainText}`}>
+                      <h2
+                        className={`text-lg font-semibold ${mainText}`}
+                      >
                         {userName}
                       </h2>
 
-                      <p className={`mt-1 text-xs ${mutedText}`}>
-                        {user?.email || profile?.email || "—"}
+                      <p
+                        className={`mt-1 text-xs ${mutedText}`}
+                      >
+                        {user?.email ||
+                          profile?.email ||
+                          "—"}
                       </p>
                     </div>
                   </div>
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <ReadOnlyField
-                      label={isPT ? "Nome" : "Name"}
-                      value={profile?.full_name || userName}
+                      label={
+                        isPT
+                          ? "Nome"
+                          : "Name"
+                      }
+                      value={
+                        profile?.full_name ||
+                        userName
+                      }
                       light={isLight}
                     />
 
                     <ReadOnlyField
                       label="Email"
-                      value={user?.email || profile?.email || "—"}
+                      value={
+                        user?.email ||
+                        profile?.email ||
+                        "—"
+                      }
                       light={isLight}
                     />
 
                     <ReadOnlyField
-                      label={isPT ? "Departamento" : "Department"}
-                      value={profile?.department || "—"}
+                      label={
+                        isPT
+                          ? "Departamento"
+                          : "Department"
+                      }
+                      value={
+                        profile?.department ||
+                        "—"
+                      }
                       light={isLight}
                     />
 
                     <ReadOnlyField
-                      label={isPT ? "Cargo" : "Position"}
-                      value={profile?.position || "—"}
+                      label={
+                        isPT
+                          ? "Cargo"
+                          : "Position"
+                      }
+                      value={
+                        profile?.position ||
+                        "—"
+                      }
                       light={isLight}
                     />
 
                     <ReadOnlyField
-                      label={isPT ? "Número de colaborador" : "Employee number"}
-                      value={profile?.sap_number || "—"}
+                      label={
+                        isPT
+                          ? "Número de colaborador"
+                          : "Employee number"
+                      }
+                      value={
+                        profile?.sap_number ||
+                        "—"
+                      }
                       light={isLight}
                     />
 
                     <ReadOnlyField
                       label="Role"
-                      value={profile?.role || "user"}
+                      value={
+                        profile?.role ||
+                        "user"
+                      }
                       light={isLight}
                     />
                   </div>
                 </div>
 
-                <div className={`rounded-2xl border ${border} ${cardBg} p-5`}>
+                <div
+                  className={`rounded-2xl border ${border} ${cardBg} p-5`}
+                >
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10 text-blue-400">
                       <UserRound size={18} />
                     </div>
 
                     <div>
-                      <h3 className={`text-sm font-semibold ${mainText}`}>
-                        {isPT ? "Preferências" : "Preferences"}
+                      <h3
+                        className={`text-sm font-semibold ${mainText}`}
+                      >
+                        {isPT
+                          ? "Preferências"
+                          : "Preferences"}
                       </h3>
 
-                      <p className={`mt-1 text-[10px] ${mutedText}`}>
+                      <p
+                        className={`mt-1 text-[10px] ${mutedText}`}
+                      >
                         {isPT
                           ? "Estas opções podem ser alteradas por ti."
                           : "These options can be changed by you."}
@@ -1916,15 +2397,23 @@ const MyPortal = () => {
                     </div>
                   </div>
 
-                  <div className={`mt-5 border-t ${border} pt-5`}>
-                    <p className={`text-[10px] font-semibold uppercase tracking-wider ${mutedText}`}>
-                      {isPT ? "Idioma" : "Language"}
+                  <div
+                    className={`mt-5 border-t ${border} pt-5`}
+                  >
+                    <p
+                      className={`text-[10px] font-semibold uppercase tracking-wider ${mutedText}`}
+                    >
+                      {isPT
+                        ? "Idioma"
+                        : "Language"}
                     </p>
 
                     <div className="mt-2 grid grid-cols-2 gap-2">
                       <button
                         type="button"
-                        onClick={() => setLanguage("pt")}
+                        onClick={() =>
+                          setLanguage("pt")
+                        }
                         className={`rounded-lg border px-3 py-2.5 text-xs ${
                           language === "pt"
                             ? "border-blue-500/40 bg-blue-500/10 text-blue-400"
@@ -1936,7 +2425,9 @@ const MyPortal = () => {
 
                       <button
                         type="button"
-                        onClick={() => setLanguage("en")}
+                        onClick={() =>
+                          setLanguage("en")
+                        }
                         className={`rounded-lg border px-3 py-2.5 text-xs ${
                           language === "en"
                             ? "border-blue-500/40 bg-blue-500/10 text-blue-400"
@@ -1948,15 +2439,23 @@ const MyPortal = () => {
                     </div>
                   </div>
 
-                  <div className={`mt-5 border-t ${border} pt-5`}>
-                    <p className={`text-[10px] font-semibold uppercase tracking-wider ${mutedText}`}>
-                      {isPT ? "Tema" : "Theme"}
+                  <div
+                    className={`mt-5 border-t ${border} pt-5`}
+                  >
+                    <p
+                      className={`text-[10px] font-semibold uppercase tracking-wider ${mutedText}`}
+                    >
+                      {isPT
+                        ? "Tema"
+                        : "Theme"}
                     </p>
 
                     <div className="mt-2 grid grid-cols-2 gap-2">
                       <button
                         type="button"
-                        onClick={() => setTheme("dark")}
+                        onClick={() =>
+                          setTheme("dark")
+                        }
                         className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-xs ${
                           !isLight
                             ? "border-blue-500/40 bg-blue-500/10 text-blue-400"
@@ -1964,12 +2463,17 @@ const MyPortal = () => {
                         }`}
                       >
                         <Moon size={14} />
-                        {isPT ? "Escuro" : "Dark"}
+
+                        {isPT
+                          ? "Escuro"
+                          : "Dark"}
                       </button>
 
                       <button
                         type="button"
-                        onClick={() => setTheme("light")}
+                        onClick={() =>
+                          setTheme("light")
+                        }
                         className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-xs ${
                           isLight
                             ? "border-blue-500/40 bg-blue-500/10 text-blue-600"
@@ -1977,7 +2481,10 @@ const MyPortal = () => {
                         }`}
                       >
                         <Sun size={14} />
-                        {isPT ? "Claro" : "Light"}
+
+                        {isPT
+                          ? "Claro"
+                          : "Light"}
                       </button>
                     </div>
                   </div>
@@ -1987,10 +2494,13 @@ const MyPortal = () => {
           )}
         </main>
       </div>
-
     </div>
   );
 };
+
+/* =========================================================
+   COMPONENTES
+   ========================================================= */
 
 const UsefulLink = ({
   icon,
@@ -2038,72 +2548,134 @@ const SupportFormPanel = ({
     description: string;
     priority: string;
   };
-  setTicketForm: React.Dispatch<React.SetStateAction<{
-    subject: string;
-    description: string;
-    priority: string;
-  }>>;
+  setTicketForm: React.Dispatch<
+    React.SetStateAction<{
+      subject: string;
+      description: string;
+      priority: string;
+    }>
+  >;
   savingTicket: boolean;
-  onSubmit: (event: FormEvent) => void;
+  onSubmit: (
+    event: FormEvent
+  ) => void;
 }) => (
-  <section className={`h-fit rounded-2xl border ${border} ${
-    isLight ? "bg-[#F8FAFC]" : "bg-[#0D1730]"
-  } p-5 xl:sticky xl:top-6`}>
+  <section
+    className={`h-fit rounded-2xl border ${border} ${
+      isLight
+        ? "bg-[#F8FAFC]"
+        : "bg-[#0D1730]"
+    } p-5 xl:sticky xl:top-6`}
+  >
     <div className="mb-5">
       <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10 text-blue-400">
         <Headphones size={18} />
       </div>
-      <h2 className={`mt-3 text-sm font-semibold ${mainText}`}>
-        {isPT ? "Abrir pedido de suporte" : "Open support request"}
+
+      <h2
+        className={`mt-3 text-sm font-semibold ${mainText}`}
+      >
+        {isPT
+          ? "Abrir pedido de suporte"
+          : "Open support request"}
       </h2>
-      <p className={`mt-1 text-[10px] leading-4 ${mutedText}`}>
+
+      <p
+        className={`mt-1 text-[10px] leading-4 ${mutedText}`}
+      >
         {isPT
           ? "Envia um pedido diretamente para a equipa de IT."
           : "Send a request directly to the IT team."}
       </p>
     </div>
 
-    <form onSubmit={onSubmit} className="space-y-4">
+    <form
+      onSubmit={onSubmit}
+      className="space-y-4"
+    >
       <FormField
-        label={isPT ? "Assunto" : "Subject"}
+        label={
+          isPT
+            ? "Assunto"
+            : "Subject"
+        }
         value={ticketForm.subject}
         onChange={(value) =>
-          setTicketForm((current) => ({ ...current, subject: value }))
+          setTicketForm((current) => ({
+            ...current,
+            subject: value,
+          }))
         }
-        placeholder={isPT ? "Ex.: Computador não liga" : "e.g. Computer won't start"}
+        placeholder={
+          isPT
+            ? "Ex.: Computador não liga"
+            : "e.g. Computer won't start"
+        }
         light={isLight}
       />
 
       <div>
-        <label className={`mb-2 block text-[11px] font-semibold ${softText}`}>
-          {isPT ? "Prioridade" : "Priority"}
+        <label
+          className={`mb-2 block text-[11px] font-semibold ${softText}`}
+        >
+          {isPT
+            ? "Prioridade"
+            : "Priority"}
         </label>
+
         <select
           value={ticketForm.priority}
           onChange={(event) =>
             setTicketForm((current) => ({
               ...current,
-              priority: event.target.value,
+              priority:
+                event.target.value,
             }))
           }
           className={`h-11 w-full rounded-xl border ${border} ${
-            isLight ? "bg-white text-slate-900" : "bg-[#0A1328] text-white"
+            isLight
+              ? "bg-white text-slate-900"
+              : "bg-[#0A1328] text-white"
           } px-3 text-xs outline-none`}
         >
-          <option value="low">{isPT ? "Baixa" : "Low"}</option>
-          <option value="normal">{isPT ? "Normal" : "Normal"}</option>
-          <option value="high">{isPT ? "Alta" : "High"}</option>
-          <option value="urgent">{isPT ? "Urgente" : "Urgent"}</option>
+          <option value="low">
+            {isPT ? "Baixa" : "Low"}
+          </option>
+
+          <option value="normal">
+            Normal
+          </option>
+
+          <option value="high">
+            {isPT ? "Alta" : "High"}
+          </option>
+
+          <option value="urgent">
+            {isPT
+              ? "Urgente"
+              : "Urgent"}
+          </option>
         </select>
       </div>
 
       <TextAreaField
-        label={isPT ? "Descrição" : "Description"}
+        label={
+          isPT
+            ? "Descrição"
+            : "Description"
+        }
         value={ticketForm.description}
         onChange={(value) =>
-          setTicketForm((current) => ({ ...current, description: value }))
+          setTicketForm((current) => ({
+            ...current,
+            description: value,
+          }))
         }
-        placeholder={isPT ? "Explica o problema..." : "Describe the issue..."}
+        placeholder={
+          isPT
+            ? "Explica o problema..."
+            : "Describe the issue..."
+        }
         light={isLight}
       />
 
@@ -2113,8 +2685,12 @@ const SupportFormPanel = ({
         className="flex h-10 w-full items-center justify-center rounded-lg bg-blue-600 px-4 text-xs font-semibold text-white hover:bg-blue-500 disabled:opacity-60"
       >
         {savingTicket
-          ? isPT ? "A enviar..." : "Sending..."
-          : isPT ? "Enviar pedido" : "Send request"}
+          ? isPT
+            ? "A enviar..."
+            : "Sending..."
+          : isPT
+            ? "Enviar pedido"
+            : "Send request"}
       </button>
     </form>
   </section>
@@ -2146,112 +2722,204 @@ const ReservationFormPanel = ({
     location: string;
     notes: string;
   };
-  setReservationForm: React.Dispatch<React.SetStateAction<{
-    title: string;
-    reservation_date: string;
-    start_time: string;
-    end_time: string;
-    location: string;
-    notes: string;
-  }>>;
+  setReservationForm: React.Dispatch<
+    React.SetStateAction<{
+      title: string;
+      reservation_date: string;
+      start_time: string;
+      end_time: string;
+      location: string;
+      notes: string;
+    }>
+  >;
   savingReservation: boolean;
-  onSubmit: (event: FormEvent) => void;
+  onSubmit: (
+    event: FormEvent
+  ) => void;
 }) => (
-  <section className={`h-fit rounded-2xl border ${border} ${
-    isLight ? "bg-[#F8FAFC]" : "bg-[#0D1730]"
-  } p-5 xl:sticky xl:top-6`}>
+  <section
+    className={`h-fit rounded-2xl border ${border} ${
+      isLight
+        ? "bg-[#F8FAFC]"
+        : "bg-[#0D1730]"
+    } p-5 xl:sticky xl:top-6`}
+  >
     <div className="mb-5">
       <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10 text-blue-400">
         <CalendarDays size={18} />
       </div>
-      <h2 className={`mt-3 text-sm font-semibold ${mainText}`}>
-        {isPT ? "Nova reserva" : "New reservation"}
+
+      <h2
+        className={`mt-3 text-sm font-semibold ${mainText}`}
+      >
+        {isPT
+          ? "Nova reserva"
+          : "New reservation"}
       </h2>
-      <p className={`mt-1 text-[10px] leading-4 ${mutedText}`}>
+
+      <p
+        className={`mt-1 text-[10px] leading-4 ${mutedText}`}
+      >
         {isPT
           ? "Envia uma reserva para aprovação da equipa de IT."
           : "Send a reservation for IT team approval."}
       </p>
     </div>
 
-    <form onSubmit={onSubmit} className="space-y-4">
+    <form
+      onSubmit={onSubmit}
+      className="space-y-4"
+    >
       <FormField
-        label={isPT ? "Título" : "Title"}
+        label={
+          isPT
+            ? "Título"
+            : "Title"
+        }
         value={reservationForm.title}
         onChange={(value) =>
-          setReservationForm((current) => ({ ...current, title: value }))
+          setReservationForm((current) => ({
+            ...current,
+            title: value,
+          }))
         }
-        placeholder={isPT ? "Ex.: Viatura para visita" : "e.g. Vehicle for visit"}
+        placeholder={
+          isPT
+            ? "Ex.: Viatura para visita"
+            : "e.g. Vehicle for visit"
+        }
         light={isLight}
       />
 
       <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1 2xl:grid-cols-3">
         <FormField
           type="date"
-          label={isPT ? "Data" : "Date"}
-          value={reservationForm.reservation_date}
+          label={
+            isPT
+              ? "Data"
+              : "Date"
+          }
+          value={
+            reservationForm.reservation_date
+          }
           onChange={(value) =>
-            setReservationForm((current) => ({
-              ...current,
-              reservation_date: value,
-            }))
+            setReservationForm(
+              (current) => ({
+                ...current,
+                reservation_date:
+                  value,
+              })
+            )
           }
           light={isLight}
         />
+
         <FormField
           type="time"
-          label={isPT ? "Início" : "Start"}
-          value={reservationForm.start_time}
+          label={
+            isPT
+              ? "Início"
+              : "Start"
+          }
+          value={
+            reservationForm.start_time
+          }
           onChange={(value) =>
-            setReservationForm((current) => ({
-              ...current,
-              start_time: value,
-            }))
+            setReservationForm(
+              (current) => ({
+                ...current,
+                start_time: value,
+              })
+            )
           }
           light={isLight}
         />
+
         <FormField
           type="time"
-          label={isPT ? "Fim" : "End"}
-          value={reservationForm.end_time}
+          label={
+            isPT
+              ? "Fim"
+              : "End"
+          }
+          value={
+            reservationForm.end_time
+          }
           onChange={(value) =>
-            setReservationForm((current) => ({
-              ...current,
-              end_time: value,
-            }))
+            setReservationForm(
+              (current) => ({
+                ...current,
+                end_time: value,
+              })
+            )
           }
           light={isLight}
         />
       </div>
 
       <FormField
-        label={isPT ? "Local" : "Location"}
+        label={
+          isPT
+            ? "Local"
+            : "Location"
+        }
         value={reservationForm.location}
         onChange={(value) =>
-          setReservationForm((current) => ({ ...current, location: value }))
+          setReservationForm((current) => ({
+            ...current,
+            location: value,
+          }))
         }
-        placeholder={isPT ? "Local da reserva" : "Reservation location"}
+        placeholder={
+          isPT
+            ? "Local da reserva"
+            : "Reservation location"
+        }
         light={isLight}
       />
 
       <TextAreaField
-        label={isPT ? "Notas" : "Notes"}
+        label={
+          isPT
+            ? "Notas"
+            : "Notes"
+        }
         value={reservationForm.notes}
         onChange={(value) =>
-          setReservationForm((current) => ({ ...current, notes: value }))
+          setReservationForm((current) => ({
+            ...current,
+            notes: value,
+          }))
         }
-        placeholder={isPT ? "Informação adicional..." : "Additional information..."}
+        placeholder={
+          isPT
+            ? "Informação adicional..."
+            : "Additional information..."
+        }
         light={isLight}
       />
 
-      <div className={`rounded-lg border ${border} ${
-        isLight ? "bg-[#EEF1F4]" : "bg-white/[0.02]"
-      } px-3 py-2.5`}>
-        <p className={`text-[10px] font-semibold ${softText}`}>
-          {isPT ? "Estado inicial" : "Initial status"}
+      <div
+        className={`rounded-lg border ${border} ${
+          isLight
+            ? "bg-[#EEF1F4]"
+            : "bg-white/[0.02]"
+        } px-3 py-2.5`}
+      >
+        <p
+          className={`text-[10px] font-semibold ${softText}`}
+        >
+          {isPT
+            ? "Estado inicial"
+            : "Initial status"}
         </p>
-        <p className={`mt-1 text-xs ${mutedText}`}>
-          {isPT ? "A aguardar aprovação do IT" : "Awaiting IT approval"}
+
+        <p
+          className={`mt-1 text-xs ${mutedText}`}
+        >
+          {isPT
+            ? "A aguardar aprovação do IT"
+            : "Awaiting IT approval"}
         </p>
       </div>
 
@@ -2261,8 +2929,12 @@ const ReservationFormPanel = ({
         className="flex h-10 w-full items-center justify-center rounded-lg bg-blue-600 px-4 text-xs font-semibold text-white hover:bg-blue-500 disabled:opacity-60"
       >
         {savingReservation
-          ? isPT ? "A enviar..." : "Sending..."
-          : isPT ? "Enviar para aprovação" : "Send for approval"}
+          ? isPT
+            ? "A enviar..."
+            : "Sending..."
+          : isPT
+            ? "Enviar para aprovação"
+            : "Send for approval"}
       </button>
     </form>
   </section>
@@ -2283,7 +2955,9 @@ const StatCard = ({
 }) => (
   <div
     className={`group rounded-xl border ${
-      light ? "border-slate-200 bg-[#F8FAFC]" : "border-white/[0.06] bg-[#0D1730]"
+      light
+        ? "border-slate-200 bg-[#F8FAFC]"
+        : "border-white/[0.06] bg-[#0D1730]"
     } p-4 transition`}
   >
     <div className="flex items-center justify-between">
@@ -2293,21 +2967,43 @@ const StatCard = ({
 
       <ChevronRight
         size={16}
-        className={light ? "text-slate-300" : "text-white/20"}
+        className={
+          light
+            ? "text-slate-300"
+            : "text-white/20"
+        }
       />
     </div>
 
     <div className="mt-4 flex items-end gap-2">
-      <span className={`text-3xl font-bold tracking-tight ${light ? "text-slate-900" : "text-white"}`}>
+      <span
+        className={`text-3xl font-bold tracking-tight ${
+          light
+            ? "text-slate-900"
+            : "text-white"
+        }`}
+      >
         {value}
       </span>
 
-      <span className={`mb-1 text-[10px] font-medium ${light ? "text-slate-600" : "text-white/55"}`}>
+      <span
+        className={`mb-1 text-[10px] font-medium ${
+          light
+            ? "text-slate-600"
+            : "text-white/55"
+        }`}
+      >
         {label}
       </span>
     </div>
 
-    <p className={`mt-1 text-[10px] ${light ? "text-slate-400" : "text-white/30"}`}>
+    <p
+      className={`mt-1 text-[10px] ${
+        light
+          ? "text-slate-400"
+          : "text-white/30"
+      }`}
+    >
       {description}
     </p>
   </div>
@@ -2328,11 +3024,19 @@ const PortalCard = ({
 }) => (
   <section
     className={`rounded-2xl border ${
-      light ? "border-slate-200 bg-[#F8FAFC]" : "border-white/[0.06] bg-[#0D1730]"
+      light
+        ? "border-slate-200 bg-[#F8FAFC]"
+        : "border-white/[0.06] bg-[#0D1730]"
     } p-5`}
   >
     <div className="mb-4 flex items-center justify-between gap-3">
-      <h2 className={`text-sm font-semibold ${light ? "text-slate-900" : "text-white"}`}>
+      <h2
+        className={`text-sm font-semibold ${
+          light
+            ? "text-slate-900"
+            : "text-white"
+        }`}
+      >
         {title}
       </h2>
 
@@ -2364,13 +3068,21 @@ const EmptyState = ({
   <div className="flex flex-col items-center justify-center py-8 text-center">
     <div
       className={`flex h-11 w-11 items-center justify-center rounded-full ${
-        light ? "bg-slate-100 text-slate-400" : "bg-white/[0.04] text-white/30"
+        light
+          ? "bg-slate-100 text-slate-400"
+          : "bg-white/[0.04] text-white/30"
       }`}
     >
       {icon}
     </div>
 
-    <p className={`mt-3 text-xs ${light ? "text-slate-500" : "text-white/40"}`}>
+    <p
+      className={`mt-3 text-xs ${
+        light
+          ? "text-slate-500"
+          : "text-white/40"
+      }`}
+    >
       {text}
     </p>
   </div>
@@ -2385,39 +3097,74 @@ const EquipmentRow = ({
   item: Equipment;
   isPT: boolean;
   light: boolean;
-  getStatus: (status: string | null) => string;
+  getStatus: (
+    status: string | null
+  ) => string;
 }) => (
   <div className="flex items-center gap-3 py-3.5">
     <div
       className={`flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg ${
-        light ? "bg-slate-100" : "bg-[#101B30]"
+        light
+          ? "bg-slate-100"
+          : "bg-[#101B30]"
       }`}
     >
       {item.image_url ? (
         <img
           src={item.image_url}
-          alt={item.name || "Equipment"}
+          alt={
+            item.name ||
+            "Equipment"
+          }
           className="h-full w-full object-cover"
         />
       ) : (
         <Laptop
           size={20}
-          className={light ? "text-slate-400" : "text-white/35"}
+          className={
+            light
+              ? "text-slate-400"
+              : "text-white/35"
+          }
         />
       )}
     </div>
 
     <div className="min-w-0 flex-1">
-      <p className={`truncate text-xs font-semibold ${light ? "text-slate-900" : "text-white"}`}>
-        {item.name || item.model || (isPT ? "Equipamento" : "Equipment")}
+      <p
+        className={`truncate text-xs font-semibold ${
+          light
+            ? "text-slate-900"
+            : "text-white"
+        }`}
+      >
+        {item.name ||
+          item.model ||
+          (isPT
+            ? "Equipamento"
+            : "Equipment")}
       </p>
 
-      <p className={`mt-1 text-[10px] ${light ? "text-slate-500" : "text-white/35"}`}>
+      <p
+        className={`mt-1 text-[10px] ${
+          light
+            ? "text-slate-500"
+            : "text-white/35"
+        }`}
+      >
         {item.model || "—"}
       </p>
 
-      <p className={`mt-0.5 text-[9px] ${light ? "text-slate-400" : "text-white/25"}`}>
-        SN: {item.serial_number || "—"}
+      <p
+        className={`mt-0.5 text-[9px] ${
+          light
+            ? "text-slate-400"
+            : "text-white/25"
+        }`}
+      >
+        SN:{" "}
+        {item.serial_number ||
+          "—"}
       </p>
     </div>
 
@@ -2426,12 +3173,25 @@ const EquipmentRow = ({
         {getStatus(item.status)}
       </span>
 
-      <p className={`mt-2 text-[9px] ${light ? "text-slate-400" : "text-white/30"}`}>
-        {isPT ? "Asset" : "Asset"}
+      <p
+        className={`mt-2 text-[9px] ${
+          light
+            ? "text-slate-400"
+            : "text-white/30"
+        }`}
+      >
+        Asset
       </p>
 
-      <p className={`mt-0.5 text-[10px] font-medium ${light ? "text-slate-600" : "text-white/60"}`}>
-        {item.asset_tag || "—"}
+      <p
+        className={`mt-0.5 text-[10px] font-medium ${
+          light
+            ? "text-slate-600"
+            : "text-white/60"
+        }`}
+      >
+        {item.asset_tag ||
+          "—"}
       </p>
     </div>
   </div>
@@ -2447,27 +3207,44 @@ const EquipmentCard = ({
   item: Equipment;
   isPT: boolean;
   light: boolean;
-  getStatus: (status: string | null) => string;
-  formatDate: (value: string | null) => string;
+  getStatus: (
+    status: string | null
+  ) => string;
+  formatDate: (
+    value: string | null
+  ) => string;
 }) => (
   <div
     className={`overflow-hidden rounded-2xl border ${
-      light ? "border-slate-200 bg-[#F8FAFC]" : "border-white/[0.06] bg-[#0D1730]"
+      light
+        ? "border-slate-200 bg-[#F8FAFC]"
+        : "border-white/[0.06] bg-[#0D1730]"
     }`}
   >
-    <div className={`flex h-44 items-center justify-center ${
-      light ? "bg-[#EEF1F4]" : "bg-[#0A1328]"
-    }`}>
+    <div
+      className={`flex h-44 items-center justify-center ${
+        light
+          ? "bg-[#EEF1F4]"
+          : "bg-[#0A1328]"
+      }`}
+    >
       {item.image_url ? (
         <img
           src={item.image_url}
-          alt={item.name || "Equipment"}
+          alt={
+            item.name ||
+            "Equipment"
+          }
           className="h-full w-full object-contain p-5"
         />
       ) : (
         <Laptop
           size={54}
-          className={light ? "text-slate-300" : "text-white/15"}
+          className={
+            light
+              ? "text-slate-300"
+              : "text-white/15"
+          }
         />
       )}
     </div>
@@ -2475,11 +3252,27 @@ const EquipmentCard = ({
     <div className="p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className={`truncate text-sm font-semibold ${light ? "text-slate-900" : "text-white"}`}>
-            {item.name || item.model || (isPT ? "Equipamento" : "Equipment")}
+          <h3
+            className={`truncate text-sm font-semibold ${
+              light
+                ? "text-slate-900"
+                : "text-white"
+            }`}
+          >
+            {item.name ||
+              item.model ||
+              (isPT
+                ? "Equipamento"
+                : "Equipment")}
           </h3>
 
-          <p className={`mt-1 text-[10px] ${light ? "text-slate-500" : "text-white/35"}`}>
+          <p
+            className={`mt-1 text-[10px] ${
+              light
+                ? "text-slate-500"
+                : "text-white/35"
+            }`}
+          >
             {item.model || "—"}
           </p>
         </div>
@@ -2492,25 +3285,43 @@ const EquipmentCard = ({
       <div className="mt-5 grid grid-cols-2 gap-3">
         <InfoItem
           label="Serial"
-          value={item.serial_number || "—"}
+          value={
+            item.serial_number ||
+            "—"
+          }
           light={light}
         />
 
         <InfoItem
           label="Asset tag"
-          value={item.asset_tag || "—"}
+          value={
+            item.asset_tag ||
+            "—"
+          }
           light={light}
         />
 
         <InfoItem
-          label={isPT ? "Compra" : "Purchase"}
-          value={formatDate(item.purchase_date)}
+          label={
+            isPT
+              ? "Compra"
+              : "Purchase"
+          }
+          value={formatDate(
+            item.purchase_date
+          )}
           light={light}
         />
 
         <InfoItem
-          label={isPT ? "Garantia" : "Warranty"}
-          value={formatDate(item.warranty_end)}
+          label={
+            isPT
+              ? "Garantia"
+              : "Warranty"
+          }
+          value={formatDate(
+            item.warranty_end
+          )}
           light={light}
         />
       </div>
@@ -2527,11 +3338,15 @@ const TicketRow = ({
   ticket: SupportTicket;
   isPT: boolean;
   light: boolean;
-  getStatus: (status: string) => string;
+  getStatus: (
+    status: string
+  ) => string;
 }) => (
   <div
     className={`flex items-center gap-3 rounded-xl border ${
-      light ? "border-slate-200 bg-slate-50" : "border-white/[0.04] bg-white/[0.015]"
+      light
+        ? "border-slate-200 bg-slate-50"
+        : "border-white/[0.04] bg-white/[0.015]"
     } p-3`}
   >
     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
@@ -2539,23 +3354,47 @@ const TicketRow = ({
     </div>
 
     <div className="min-w-0 flex-1">
-      <p className={`truncate text-xs font-semibold ${light ? "text-slate-900" : "text-white"}`}>
+      <p
+        className={`truncate text-xs font-semibold ${
+          light
+            ? "text-slate-900"
+            : "text-white"
+        }`}
+      >
         {ticket.subject}
       </p>
 
-      <p className={`mt-1 text-[9px] ${light ? "text-slate-400" : "text-white/30"}`}>
+      <p
+        className={`mt-1 text-[9px] ${
+          light
+            ? "text-slate-400"
+            : "text-white/30"
+        }`}
+      >
         #{ticket.id}
       </p>
     </div>
 
     <div className="text-right">
       <span className="inline-flex rounded-full bg-blue-500/10 px-2 py-1 text-[9px] font-medium text-blue-500">
-        {getStatus(ticket.status)}
+        {getStatus(
+          ticket.status
+        )}
       </span>
 
-      <p className={`mt-2 text-[9px] ${light ? "text-slate-400" : "text-white/25"}`}>
-        {new Date(ticket.created_at).toLocaleDateString(
-          isPT ? "pt-PT" : "en-GB"
+      <p
+        className={`mt-2 text-[9px] ${
+          light
+            ? "text-slate-400"
+            : "text-white/25"
+        }`}
+      >
+        {new Date(
+          ticket.created_at
+        ).toLocaleDateString(
+          isPT
+            ? "pt-PT"
+            : "en-GB"
         )}
       </p>
     </div>
@@ -2571,14 +3410,23 @@ const ReservationMini = ({
   reservation: Reservation;
   isPT: boolean;
   light: boolean;
-  getStatus: (status: string) => { label: string; className: string };
+  getStatus: (
+    status: string
+  ) => {
+    label: string;
+    className: string;
+  };
 }) => {
-  const status = getStatus(reservation.status);
+  const status = getStatus(
+    reservation.status
+  );
 
   return (
     <div
       className={`rounded-xl border ${
-        light ? "border-slate-200 bg-slate-50" : "border-white/[0.06] bg-[#0B162A]"
+        light
+          ? "border-slate-200 bg-slate-50"
+          : "border-white/[0.06] bg-[#0B162A]"
       } p-4`}
     >
       <div className="flex items-center gap-3">
@@ -2587,23 +3435,54 @@ const ReservationMini = ({
         </div>
 
         <div className="min-w-0 flex-1">
-          <p className={`truncate text-xs font-semibold ${light ? "text-slate-900" : "text-white"}`}>
+          <p
+            className={`truncate text-xs font-semibold ${
+              light
+                ? "text-slate-900"
+                : "text-white"
+            }`}
+          >
             {reservation.title}
           </p>
 
-          <p className={`mt-1 text-[10px] ${light ? "text-slate-500" : "text-white/35"}`}>
-            {new Date(reservation.reservation_date).toLocaleDateString(
-              isPT ? "pt-PT" : "en-GB"
+          <p
+            className={`mt-1 text-[10px] ${
+              light
+                ? "text-slate-500"
+                : "text-white/35"
+            }`}
+          >
+            {new Date(
+              reservation.reservation_date
+            ).toLocaleDateString(
+              isPT
+                ? "pt-PT"
+                : "en-GB"
             )}
           </p>
 
-          <p className={`mt-0.5 text-[10px] ${light ? "text-slate-500" : "text-white/35"}`}>
-            {reservation.start_time.slice(0, 5)} -{" "}
-            {reservation.end_time.slice(0, 5)}
+          <p
+            className={`mt-0.5 text-[10px] ${
+              light
+                ? "text-slate-500"
+                : "text-white/35"
+            }`}
+          >
+            {reservation.start_time.slice(
+              0,
+              5
+            )}{" "}
+            -{" "}
+            {reservation.end_time.slice(
+              0,
+              5
+            )}
           </p>
         </div>
 
-        <span className={`rounded-full px-2 py-1 text-[9px] font-medium ${status.className}`}>
+        <span
+          className={`rounded-full px-2 py-1 text-[9px] font-medium ${status.className}`}
+        >
           {status.label}
         </span>
       </div>
@@ -2633,24 +3512,37 @@ const PortalSectionHeader = ({
           NexHop Employee
         </p>
 
-        <h1 className={`mt-2 text-2xl font-bold tracking-tight ${light ? "text-slate-900" : "text-white"}`}>
+        <h1
+          className={`mt-2 text-2xl font-bold tracking-tight ${
+            light
+              ? "text-slate-900"
+              : "text-white"
+          }`}
+        >
           {title}
         </h1>
 
-        <p className={`mt-1.5 max-w-2xl text-sm ${light ? "text-slate-500" : "text-white/35"}`}>
+        <p
+          className={`mt-1.5 max-w-2xl text-sm ${
+            light
+              ? "text-slate-500"
+              : "text-white/35"
+          }`}
+        >
           {description}
         </p>
       </div>
 
-      {actionLabel && onAction && (
-        <button
-          type="button"
-          onClick={onAction}
-          className="inline-flex h-10 shrink-0 items-center justify-center rounded-lg bg-blue-600 px-4 text-xs font-semibold text-white hover:bg-blue-500"
-        >
-          {actionLabel}
-        </button>
-      )}
+      {actionLabel &&
+        onAction && (
+          <button
+            type="button"
+            onClick={onAction}
+            className="inline-flex h-10 shrink-0 items-center justify-center rounded-lg bg-blue-600 px-4 text-xs font-semibold text-white hover:bg-blue-500"
+          >
+            {actionLabel}
+          </button>
+        )}
     </div>
 
     {children}
@@ -2667,15 +3559,21 @@ const ReadOnlyField = ({
   light: boolean;
 }) => (
   <div>
-    <label className={`mb-2 block text-[10px] font-semibold uppercase tracking-wider ${
-      light ? "text-slate-400" : "text-white/30"
-    }`}>
+    <label
+      className={`mb-2 block text-[10px] font-semibold uppercase tracking-wider ${
+        light
+          ? "text-slate-400"
+          : "text-white/30"
+      }`}
+    >
       {label}
     </label>
 
     <div
       className={`flex min-h-11 items-center rounded-xl border ${
-        light ? "border-slate-200 bg-[#EEF1F4] text-slate-700" : "border-white/[0.06] bg-[#0A1328] text-white/70"
+        light
+          ? "border-slate-200 bg-[#EEF1F4] text-slate-700"
+          : "border-white/[0.06] bg-[#0A1328] text-white/70"
       } px-3 text-xs`}
     >
       {value}
@@ -2693,11 +3591,23 @@ const InfoItem = ({
   light: boolean;
 }) => (
   <div>
-    <p className={`text-[9px] uppercase tracking-wider ${light ? "text-slate-400" : "text-white/25"}`}>
+    <p
+      className={`text-[9px] uppercase tracking-wider ${
+        light
+          ? "text-slate-400"
+          : "text-white/25"
+      }`}
+    >
       {label}
     </p>
 
-    <p className={`mt-1 truncate text-[10px] font-medium ${light ? "text-slate-600" : "text-white/60"}`}>
+    <p
+      className={`mt-1 truncate text-[10px] font-medium ${
+        light
+          ? "text-slate-600"
+          : "text-white/60"
+      }`}
+    >
       {value}
     </p>
   </div>
@@ -2713,26 +3623,41 @@ const FormField = ({
 }: {
   label: string;
   value: string;
-  onChange: (value: string) => void;
+  onChange: (
+    value: string
+  ) => void;
   placeholder?: string;
   type?: string;
   light: boolean;
 }) => (
   <div>
-    <label className={`mb-2 block text-[11px] font-semibold ${
-      light ? "text-slate-700" : "text-white/75"
-    }`}>
+    <label
+      className={`mb-2 block text-[11px] font-semibold ${
+        light
+          ? "text-slate-700"
+          : "text-white/75"
+      }`}
+    >
       {label}
     </label>
 
     <input
       type={type}
       value={value}
-      onChange={(event) => onChange(event.target.value)}
+      onChange={(event) =>
+        onChange(
+          event.target.value
+        )
+      }
       placeholder={placeholder}
-      required={label !== "Local" && label !== "Location"}
+      required={
+        label !== "Local" &&
+        label !== "Location"
+      }
       className={`h-11 w-full rounded-xl border ${
-        light ? "border-slate-200 bg-white text-slate-900 placeholder:text-slate-400" : "border-white/[0.08] bg-[#0A1328] text-white placeholder:text-white/25"
+        light
+          ? "border-slate-200 bg-white text-slate-900 placeholder:text-slate-400"
+          : "border-white/[0.08] bg-[#0A1328] text-white placeholder:text-white/25"
       } px-3 text-xs outline-none focus:border-blue-500/50`}
     />
   </div>
@@ -2747,25 +3672,37 @@ const TextAreaField = ({
 }: {
   label: string;
   value: string;
-  onChange: (value: string) => void;
+  onChange: (
+    value: string
+  ) => void;
   placeholder?: string;
   light: boolean;
 }) => (
   <div>
-    <label className={`mb-2 block text-[11px] font-semibold ${
-      light ? "text-slate-700" : "text-white/75"
-    }`}>
+    <label
+      className={`mb-2 block text-[11px] font-semibold ${
+        light
+          ? "text-slate-700"
+          : "text-white/75"
+      }`}
+    >
       {label}
     </label>
 
     <textarea
       value={value}
-      onChange={(event) => onChange(event.target.value)}
+      onChange={(event) =>
+        onChange(
+          event.target.value
+        )
+      }
       placeholder={placeholder}
       rows={4}
       required
       className={`w-full resize-none rounded-xl border ${
-        light ? "border-slate-200 bg-white text-slate-900 placeholder:text-slate-400" : "border-white/[0.08] bg-[#0A1328] text-white placeholder:text-white/25"
+        light
+          ? "border-slate-200 bg-white text-slate-900 placeholder:text-slate-400"
+          : "border-white/[0.08] bg-[#0A1328] text-white placeholder:text-white/25"
       } px-3 py-3 text-xs outline-none focus:border-blue-500/50`}
     />
   </div>
@@ -2781,7 +3718,12 @@ const ModalOverlay = ({
   <div
     className="fixed inset-0 z-[100] flex items-stretch justify-end bg-black/65 backdrop-blur-sm sm:p-4"
     onMouseDown={(event) => {
-      if (event.target === event.currentTarget) onClose();
+      if (
+        event.target ===
+        event.currentTarget
+      ) {
+        onClose();
+      }
     }}
   >
     {children}

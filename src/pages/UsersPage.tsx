@@ -24,7 +24,6 @@ import {
 } from '@/components/ui/dialog';
 
 import { AddUserForm } from '@/components/Users/AddUserForm';
-import { AssignEquipmentForm } from '@/components/Equipment/AssignEquipmentForm';
 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -124,20 +123,12 @@ const UsersPage = () => {
   const [isEditUserDialogOpen, setIsEditUserDialogOpen] =
     useState(false);
 
-  const [
-    isAssignEquipmentDialogOpen,
-    setIsAssignEquipmentDialogOpen,
-  ] = useState(false);
-
   const [userDetailsOpen, setUserDetailsOpen] =
     useState(false);
 
   /* =========================================================
      SELECTED USER
      ========================================================= */
-
-  const [selectedUserId, setSelectedUserId] =
-    useState<string | null>(null);
 
   const [selectedUser, setSelectedUser] =
     useState<any | null>(null);
@@ -660,11 +651,43 @@ const UsersPage = () => {
 
     if (!isAdmin || !selectedUser) return;
 
-    if (!editUserForm.full_name.trim()) {
+    const requiredFields = [
+      {
+        value: editUserForm.full_name,
+        pt: 'O nome é obrigatório.',
+        en: 'Name is required.',
+      },
+      {
+        value: editUserForm.department,
+        pt: 'O departamento é obrigatório.',
+        en: 'Department is required.',
+      },
+      {
+        value: editUserForm.position,
+        pt: 'O cargo é obrigatório.',
+        en: 'Position is required.',
+      },
+      {
+        value: editUserForm.sap_number,
+        pt: 'O N.º de Colaborador é obrigatório.',
+        en: 'Employee number is required.',
+      },
+      {
+        value: editUserForm.role,
+        pt: 'A função é obrigatória.',
+        en: 'Role is required.',
+      },
+    ];
+
+    const missingField = requiredFields.find(
+      (field) => !field.value?.trim()
+    );
+
+    if (missingField) {
       toast.error(
         isPT
-          ? 'O nome é obrigatório.'
-          : 'Name is required.'
+          ? missingField.pt
+          : missingField.en
       );
 
       return;
@@ -726,37 +749,6 @@ const UsersPage = () => {
     } finally {
       setSavingUser(false);
     }
-  };
-
-  /* =========================================================
-     ASSIGN EQUIPMENT
-     ========================================================= */
-
-  const openAssignEquipmentDialog = (
-    userId?: string
-  ) => {
-    /* -------------------------------------------------------
-       Apenas Admin pode atribuir equipamento.
-       ------------------------------------------------------- */
-
-    if (!isAdmin) return;
-
-    setSelectedUserId(userId ?? null);
-
-    setIsAssignEquipmentDialogOpen(true);
-  };
-
-  const handleAssignEquipmentSuccess = () => {
-    toast.success(
-      isPT
-        ? 'Equipamento atribuído com sucesso!'
-        : 'Equipment assigned successfully!'
-    );
-
-    setIsAssignEquipmentDialogOpen(false);
-    setSelectedUserId(null);
-
-    loadData();
   };
 
   /* =========================================================
@@ -835,22 +827,6 @@ const UsersPage = () => {
 
           {isAdmin && (
             <div className="flex flex-wrap items-center gap-3">
-
-              {/* ASSIGN EQUIPMENT */}
-
-              <Button
-                variant="outline"
-                onClick={() =>
-                  openAssignEquipmentDialog()
-                }
-                className="border-amber-500/20 bg-amber-500/5 text-amber-400 transition-all hover:border-amber-500/30 hover:bg-amber-500/10 hover:text-amber-300"
-              >
-                <Package className="mr-2 h-4 w-4" />
-
-                {isPT
-                  ? 'Atribuir equipamento'
-                  : 'Assign equipment'}
-              </Button>
 
               {/* ADD USER */}
 
@@ -1021,8 +997,8 @@ const UsersPage = () => {
                 }
                 placeholder={
                   isPT
-                    ? 'Pesquisar utilizador, email, SAP...'
-                    : 'Search user, email, SAP...'
+                    ? 'Pesquisar utilizador, email, n.º de colaborador...'
+                    : 'Search user, email, employee number...'
                 }
                 className="w-full h-11 border-white/10 bg-[#0A1328] pl-10 text-white placeholder:text-white/25 focus:border-blue-500/50 focus:ring-blue-500/20"
               />
@@ -1368,26 +1344,6 @@ const UsersPage = () => {
                                   <Pencil className="h-4 w-4" />
                                 </Button>
 
-                                {/* ASSIGN EQUIPMENT */}
-
-                                <Button
-                                  size="icon"
-                                  variant="outline"
-                                  onClick={() =>
-                                    openAssignEquipmentDialog(
-                                      user.id
-                                    )
-                                  }
-                                  className="h-9 w-9 border-amber-500/20 bg-amber-500/5 text-amber-400 transition-all hover:border-amber-500/30 hover:bg-amber-500/10 hover:text-amber-300"
-                                  title={
-                                    isPT
-                                      ? 'Atribuir equipamento'
-                                      : 'Assign equipment'
-                                  }
-                                >
-                                  <Monitor className="h-4 w-4" />
-                                </Button>
-
                               </>
                             )}
 
@@ -1498,8 +1454,8 @@ const UsersPage = () => {
 
                   <label className="text-xs font-medium text-white/50">
                     {isPT
-                      ? 'Nome completo'
-                      : 'Full name'}
+                      ? 'Nome completo *'
+                      : 'Full name *'}
                   </label>
 
                   <Input
@@ -1526,8 +1482,8 @@ const UsersPage = () => {
 
                   <label className="text-xs font-medium text-white/50">
                     {isPT
-                      ? 'Departamento'
-                      : 'Department'}
+                      ? 'Departamento *'
+                      : 'Department *'}
                   </label>
 
                   <Input
@@ -1554,8 +1510,8 @@ const UsersPage = () => {
 
                   <label className="text-xs font-medium text-white/50">
                     {isPT
-                      ? 'Cargo'
-                      : 'Position'}
+                      ? 'Cargo *'
+                      : 'Position *'}
                   </label>
 
                   <Input
@@ -1581,7 +1537,9 @@ const UsersPage = () => {
                 <div className="space-y-2">
 
                   <label className="text-xs font-medium text-white/50">
-                    SAP
+                    {isPT
+                      ? 'N.º de Colaborador *'
+                      : 'Employee number *'}
                   </label>
 
                   <Input
@@ -1608,8 +1566,8 @@ const UsersPage = () => {
 
                   <label className="text-xs font-medium text-white/50">
                     {isPT
-                      ? 'Função'
-                      : 'Role'}
+                      ? 'Função *'
+                      : 'Role *'}
                   </label>
 
                   <Select
@@ -1791,45 +1749,6 @@ const UsersPage = () => {
       )}
 
       {/* =====================================================
-          ASSIGN EQUIPMENT DIALOG
-
-          Apenas Admin pode abrir e executar esta ação.
-          ===================================================== */}
-
-      {isAdmin && (
-        <Dialog
-          open={
-            isAssignEquipmentDialogOpen
-          }
-          onOpenChange={
-            setIsAssignEquipmentDialogOpen
-          }
-        >
-          <DialogContent className="max-h-[90vh] overflow-y-auto border-amber-500/20 bg-[#0D1730] text-white shadow-2xl sm:max-w-[650px]">
-
-            <DialogHeader>
-              <DialogTitle className="text-white">
-                {isPT
-                  ? 'Atribuir equipamento'
-                  : 'Assign equipment'}
-              </DialogTitle>
-            </DialogHeader>
-
-            <AssignEquipmentForm
-              onSuccess={
-                handleAssignEquipmentSuccess
-              }
-              preselectedUserId={
-                selectedUserId ||
-                undefined
-              }
-            />
-
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {/* =====================================================
           USER DETAILS DIALOG
 
           Admin + Viewer podem consultar.
@@ -1942,7 +1861,7 @@ const UsersPage = () => {
                 <div className="rounded-lg border border-white/[0.07] bg-[#0A1328] p-4">
 
                   <p className="text-xs text-white/35">
-                    SAP
+                    {isPT ? 'N.º de Colaborador' : 'Employee number'}
                   </p>
 
                   <p className="mt-1 font-mono text-sm text-white">
@@ -2006,26 +1925,6 @@ const UsersPage = () => {
                         ? 'Nenhum equipamento atribuído.'
                         : 'No equipment assigned.'}
                     </p>
-
-                    {/* ADMIN ONLY */}
-
-                    {isAdmin && (
-                      <Button
-                        variant="outline"
-                        onClick={() =>
-                          openAssignEquipmentDialog(
-                            selectedUser.id
-                          )
-                        }
-                        className="mt-4 border-amber-500/20 bg-amber-500/5 text-amber-400 hover:border-amber-500/30 hover:bg-amber-500/10 hover:text-amber-300"
-                      >
-                        <Monitor className="mr-2 h-4 w-4" />
-
-                        {isPT
-                          ? 'Atribuir equipamento'
-                          : 'Assign equipment'}
-                      </Button>
-                    )}
 
                   </div>
 

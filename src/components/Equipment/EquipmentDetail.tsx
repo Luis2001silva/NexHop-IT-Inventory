@@ -59,13 +59,13 @@ import {
 } from 'lucide-react';
 
 import { supabase } from '@/integrations/supabase/client';
+import { createActivityLog } from '@/lib/activityLog';
 
 interface Equipment {
   id?: number;
   name: string;
   model: string;
   serial_number: string;
-  asset_tag: string;
   description: string;
   brand_id: number | null;
   equipment_type_id: number | null;
@@ -74,6 +74,7 @@ interface Equipment {
   location_id: number | null;
   supplier_id: number | null;
   invoice_id: number | null;
+  invoice_number: string;
   purchase_date: string | null;
   warranty_end: string | null;
   status: string;
@@ -119,6 +120,8 @@ const EquipmentDetail = () => {
   const [equipmentTypes, setEquipmentTypes] = useState<any[]>([]);
   const [locations, setLocations] = useState<any[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
+  const [invoiceNumber, setInvoiceNumber] = useState('');
+  const [validationErrors, setValidationErrors] = useState<Record<string, boolean>>({});
 
   /*
    * ---------------------------------------------------------
@@ -383,25 +386,6 @@ const EquipmentDetail = () => {
 
   /*
    * ---------------------------------------------------------
-   * ROLE LOADING
-   *
-   * Esperamos pelo carregamento do role antes de apresentar
-   * as ações administrativas.
-   * ---------------------------------------------------------
-   */
-
-  if (roleLoading) {
-    return (
-      <div className="flex min-h-[400px] items-center justify-center bg-[#080D1F] text-white">
-        <div className="text-sm text-white/40">
-          {isPT ? 'A carregar...' : 'Loading...'}
-        </div>
-      </div>
-    );
-  }
-
-  /*
-   * ---------------------------------------------------------
    * LOAD
    * ---------------------------------------------------------
    */
@@ -414,7 +398,6 @@ const EquipmentDetail = () => {
         name: '',
         model: '',
         serial_number: '',
-        asset_tag: '',
         description: '',
         brand_id: null,
         equipment_type_id: null,
@@ -423,6 +406,7 @@ const EquipmentDetail = () => {
         location_id: null,
         supplier_id: null,
         invoice_id: null,
+        invoice_number: '',
         purchase_date: null,
         warranty_end: null,
         status: 'active',
@@ -440,6 +424,25 @@ const EquipmentDetail = () => {
       loadInvoices();
     }
   }, [id]);
+
+  /*
+   * ---------------------------------------------------------
+   * ROLE LOADING
+   *
+   * Esperamos pelo carregamento do role antes de apresentar
+   * as ações administrativas.
+   * ---------------------------------------------------------
+   */
+
+  if (roleLoading) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center bg-[#080D1F] text-white">
+        <div className="text-sm text-white/40">
+          {isPT ? 'A carregar...' : 'Loading...'}
+        </div>
+      </div>
+    );
+  }
 
   /*
    * ---------------------------------------------------------
@@ -509,7 +512,6 @@ const EquipmentDetail = () => {
       name: data.name ?? '',
       model: data.model ?? '',
       serial_number: data.serial_number ?? '',
-      asset_tag: data.asset_tag ?? '',
       description: data.notes ?? '',
       brand_id: data.brand_id ?? null,
       equipment_type_id: data.equipment_type_id ?? null,
@@ -518,6 +520,7 @@ const EquipmentDetail = () => {
       location_id: data.location_id ?? null,
       supplier_id: data.supplier_id ?? null,
       invoice_id: null,
+      invoice_number: '',
       purchase_date: data.purchase_date ?? null,
       warranty_end: data.warranty_end ?? null,
       status: data.status ?? 'active',
@@ -554,6 +557,7 @@ const EquipmentDetail = () => {
     }
 
     setInvoices(data ?? []);
+    setInvoiceNumber(data?.[0]?.invoice_number ?? '');
   }
 
   /*
@@ -575,6 +579,13 @@ const EquipmentDetail = () => {
       ...equipment,
       [name]: value,
     });
+
+    if (validationErrors[name]) {
+      setValidationErrors((current) => ({
+        ...current,
+        [name]: false,
+      }));
+    }
   };
 
   /*
@@ -625,16 +636,27 @@ const EquipmentDetail = () => {
   const handleSave = async () => {
     if (!isAdmin || !equipment) return;
 
-    if (!equipment.name.trim()) {
+    const errors: Record<string, boolean> = {};
+
+    if (!equipment.name.trim()) errors.name = true;
+    if (!equipment.brand_id) errors.brand_id = true;
+    if (!equipment.equipment_type_id) errors.equipment_type_id = true;
+    if (!equipment.model.trim()) errors.model = true;
+    if (!equipment.serial_number.trim()) errors.serial_number = true;
+    if (!invoiceNumber.trim()) errors.invoice_number = true;
+    if (!equipment.status) errors.status = true;
+
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
       toast.error(
         isPT
-          ? 'O nome do equipamento é obrigatório.'
-          : 'Equipment name is required.'
+          ? 'Preenche todos os campos obrigatórios.'
+          : 'Please fill in all required fields.'
       );
-
       return;
     }
 
+    setValidationErrors({});
     setSaving(true);
 
     try {
@@ -642,61 +664,58 @@ const EquipmentDetail = () => {
         name: equipment.name,
         model: equipment.model,
         serial_number: equipment.serial_number,
-        asset_tag: equipment.asset_tag,
         notes:
           equipment.notes ||
           equipment.description ||
           null,
         brand_id: equipment.brand_id,
-        equipment_type_id:
-          equipment.equipment_type_id,
-        assigned_user:
-          equipment.assigned_user_id,
-        department_id:
-          equipment.department_id,
-        location_id:
-          equipment.location_id,
-        supplier_id:
-          equipment.supplier_id,
-        purchase_date:
-          equipment.purchase_date,
-        warranty_end:
-          equipment.warranty_end,
+        equipment_type_id: equipment.equipment_type_id,
+        assigned_user: equipment.assigned_user_id,
+        department_id: equipment.department_id,
+        location_id: equipment.location_id,
+        supplier_id: equipment.supplier_id,
+        purchase_date: equipment.purchase_date,
+        warranty_end: equipment.warranty_end,
         status: equipment.status,
       };
 
-      let error;
-
-      /*
-       * NEW
-       */
-
       if (isNewEquipment) {
-        ({ error } = await supabase
+        const { data, error } = await supabase
           .from('equipment')
-          .insert(payload));
-      }
+          .insert(payload)
+          .select('id')
+          .single();
 
-      /*
-       * UPDATE
-       */
+        if (error) throw error;
 
-      else {
-        ({ error } = await supabase
-          .from('equipment')
-          .update(payload)
-          .eq('id', equipment.id));
-      }
+        const { error: invoiceError } = await supabase
+          .from('invoices')
+          .insert({
+            equipment_id: data.id,
+            invoice_number: invoiceNumber.trim(),
+            invoice_date: equipment.purchase_date || null,
+          });
 
-      if (error) {
-        throw error;
-      }
+        if (invoiceError) throw invoiceError;
 
-      /*
-       * NEW EQUIPMENT
-       */
+        await createActivityLog({
+          action: 'CREATE',
+          module: 'equipment',
+          entityType: 'equipment',
+          entityId: data?.id ?? null,
+          description: isPT
+            ? `Criou o equipamento "${equipment.name}".`
+            : `Created equipment "${equipment.name}".`,
+          level: 'success',
+          newData: {
+            name: equipment.name,
+            model: equipment.model,
+            serial_number: equipment.serial_number,
+            invoice_number: invoiceNumber.trim(),
+            status: equipment.status,
+          },
+        });
 
-      if (isNewEquipment) {
         toast.success(
           isPT
             ? 'Equipamento criado com sucesso!'
@@ -707,14 +726,55 @@ const EquipmentDetail = () => {
         return;
       }
 
-      /*
-       * EXISTING EQUIPMENT
-       */
+      const { error } = await supabase
+        .from('equipment')
+        .update(payload)
+        .eq('id', equipment.id);
 
-      const updatedEquipment = {
-        ...equipment,
-      };
+      if (error) throw error;
 
+      const currentInvoice = invoices[0];
+
+      if (currentInvoice?.id) {
+        const { error: invoiceError } = await supabase
+          .from('invoices')
+          .update({
+            invoice_number: invoiceNumber.trim(),
+            invoice_date: equipment.purchase_date || null,
+          })
+          .eq('id', currentInvoice.id);
+
+        if (invoiceError) throw invoiceError;
+      } else {
+        const { error: invoiceError } = await supabase
+          .from('invoices')
+          .insert({
+            equipment_id: equipment.id,
+            invoice_number: invoiceNumber.trim(),
+            invoice_date: equipment.purchase_date || null,
+          });
+
+        if (invoiceError) throw invoiceError;
+      }
+
+      await createActivityLog({
+        action: 'UPDATE',
+        module: 'equipment',
+        entityType: 'equipment',
+        entityId: equipment.id ?? null,
+        description: isPT
+          ? `Atualizou o equipamento "${equipment.name}".`
+          : `Updated equipment "${equipment.name}".`,
+        level: 'info',
+        newData: {
+          name: equipment.name,
+          model: equipment.model,
+          serial_number: equipment.serial_number,
+          status: equipment.status,
+        },
+      });
+
+      const updatedEquipment = { ...equipment };
       setEquipment(updatedEquipment);
       setOriginalEquipment(updatedEquipment);
       setIsEditing(false);
@@ -736,12 +796,6 @@ const EquipmentDetail = () => {
     }
   };
 
-  /*
-   * ---------------------------------------------------------
-   * DELETE
-   * ---------------------------------------------------------
-   */
-
   // =======================================================
   // DELETE EQUIPMENT
   //
@@ -754,14 +808,30 @@ const EquipmentDetail = () => {
     if (!isAdmin || !equipment?.id) return;
 
     try {
+      const equipmentName = equipment.name;
+      const equipmentId = equipment.id;
+
       const { error } = await supabase
         .from('equipment')
         .delete()
-        .eq('id', equipment.id);
+        .eq('id', equipmentId);
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
+
+      await createActivityLog({
+        action: 'DELETE',
+        module: 'equipment',
+        entityType: 'equipment',
+        entityId: equipmentId,
+        description: isPT
+          ? `Eliminou o equipamento "${equipmentName}".`
+          : `Deleted equipment "${equipmentName}".`,
+        level: 'warning',
+        oldData: {
+          name: equipmentName,
+          equipment_id: equipmentId,
+        },
+      });
 
       toast.success(
         isPT
@@ -918,19 +988,6 @@ const EquipmentDetail = () => {
                   {equipment.model && (
                     <span>
                       {equipment.model}
-                    </span>
-                  )}
-
-                  {equipment.model &&
-                    equipment.asset_tag && (
-                      <span className="text-white/15">
-                        •
-                      </span>
-                    )}
-
-                  {equipment.asset_tag && (
-                    <span>
-                      {equipment.asset_tag}
                     </span>
                   )}
 
@@ -1180,8 +1237,14 @@ const EquipmentDetail = () => {
                       ? 'Ex: Portátil Dell Latitude 5450'
                       : 'Ex: Dell Latitude 5450 Laptop'
                   }
-                  className={`${inputClass} h-11`}
+                  className={`${inputClass} h-11 ${validationErrors.name ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}`}
                 />
+
+                {validationErrors.name && (
+                  <p className="mt-1.5 text-xs text-red-400">
+                    {isPT ? 'O nome é obrigatório.' : 'Name is required.'}
+                  </p>
+                )}
 
               </div>
 
@@ -1217,7 +1280,7 @@ const EquipmentDetail = () => {
                 >
 
                   <SelectTrigger
-                    className={`h-11 ${inputClass}`}
+                    className={`h-11 ${inputClass} ${validationErrors.brand_id ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}`}
                   >
                     <SelectValue
                       placeholder={
@@ -1260,6 +1323,12 @@ const EquipmentDetail = () => {
 
                 </Select>
 
+                {validationErrors.brand_id && (
+                  <p className="mt-1.5 text-xs text-red-400">
+                    {isPT ? 'A marca é obrigatória.' : 'Brand is required.'}
+                  </p>
+                )}
+
               </div>
 
               {/* MODEL */}
@@ -1271,7 +1340,9 @@ const EquipmentDetail = () => {
                   {isPT
                     ? 'Modelo'
                     : 'Model'}
-
+                    <span className="ml-1 text-blue-400">
+                                          *
+                                        </span>
                 </label>
 
                 <Input
@@ -1284,8 +1355,14 @@ const EquipmentDetail = () => {
                       ? 'Ex: Latitude 5450'
                       : 'Ex: Latitude 5450'
                   }
-                  className={`${inputClass} h-11`}
+                  className={`${inputClass} h-11 ${validationErrors.model ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}`}
                 />
+
+                {validationErrors.model && (
+                  <p className="mt-1.5 text-xs text-red-400">
+                    {isPT ? 'O modelo é obrigatório.' : 'Model is required.'}
+                  </p>
+                )}
 
               </div>
 
@@ -1299,6 +1376,12 @@ const EquipmentDetail = () => {
                     ? 'Número de Série'
                     : 'Serial Number'}
 
+                  {isEditing && (
+                    <span className="ml-1 text-blue-400">
+                      *
+                    </span>
+                  )}
+
                 </label>
 
                 <Input
@@ -1307,8 +1390,14 @@ const EquipmentDetail = () => {
                   onChange={handleChange}
                   disabled={!isEditing}
                   placeholder="Ex: ABC123XYZ"
-                  className={`${inputClass} h-11`}
+                  className={`${inputClass} h-11 ${validationErrors.serial_number ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}`}
                 />
+
+                {validationErrors.serial_number && (
+                  <p className="mt-1.5 text-xs text-red-400">
+                    {isPT ? 'O número de série é obrigatório.' : 'Serial number is required.'}
+                  </p>
+                )}
 
               </div>
 
@@ -1351,7 +1440,7 @@ const EquipmentDetail = () => {
                 >
 
                   <SelectTrigger
-                    className={`h-11 ${inputClass}`}
+                    className={`h-11 ${inputClass} ${validationErrors.equipment_type_id ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}`}
                   >
                     <SelectValue
                       placeholder={
@@ -1392,24 +1481,60 @@ const EquipmentDetail = () => {
 
                 </Select>
 
+                {validationErrors.equipment_type_id && (
+                  <p className="mt-1.5 text-xs text-red-400">
+                    {isPT ? 'O tipo de equipamento é obrigatório.' : 'Equipment type is required.'}
+                  </p>
+                )}
+
               </div>
 
-              {/* ASSET TAG */}
+              {/* INVOICE NUMBER */}
 
               <div>
 
                 <label className={labelClass}>
-                  Asset Tag
+                  {isPT ? 'Número de Fatura' : 'Invoice Number'}
+
+                  {isEditing && (
+                    <span className="ml-1 text-blue-400">
+                      *
+                    </span>
+                  )}
                 </label>
 
                 <Input
-                  name="asset_tag"
-                  value={equipment.asset_tag}
-                  onChange={handleChange}
+                  name="invoice_number"
+                  value={invoiceNumber}
+                  onChange={(e) => {
+                    setInvoiceNumber(e.target.value);
+                    if (validationErrors.invoice_number) {
+                      setValidationErrors((current) => ({
+                        ...current,
+                        invoice_number: false,
+                      }));
+                    }
+                  }}
                   disabled={!isEditing}
-                  placeholder="Ex: IT-0001"
-                  className={`${inputClass} h-11`}
+                  placeholder={
+                    isPT
+                      ? 'Ex: FT 2026/00123'
+                      : 'Ex: INV-2026-00123'
+                  }
+                  className={`${inputClass} h-11 ${
+                    validationErrors.invoice_number
+                      ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                      : ''
+                  }`}
                 />
+
+                {validationErrors.invoice_number && (
+                  <p className="mt-1.5 text-xs text-red-400">
+                    {isPT
+                      ? 'O número de fatura é obrigatório.'
+                      : 'Invoice number is required.'}
+                  </p>
+                )}
 
               </div>
 
@@ -1580,73 +1705,100 @@ const EquipmentDetail = () => {
 
               </div>
 
-              {/* LOCATION */}
+              {/* LOCATION + PURCHASE DATE */}
 
-              <div>
+              <div className="grid gap-5 md:grid-cols-2">
 
-                <label className={labelClass}>
+                {/* LOCATION */}
 
-                  {isPT
-                    ? 'Localização'
-                    : 'Location'}
+                <div>
 
-                </label>
+                  <label className={labelClass}>
 
-                <Select
-                  value={
-                    equipment.location_id?.toString() ?? ''
-                  }
-                  onValueChange={(value) =>
-                    setEquipment({
-                      ...equipment,
-                      location_id:
-                        Number(value),
-                    })
-                  }
-                  disabled={!isEditing}
-                >
+                    {isPT
+                      ? 'Localização'
+                      : 'Location'}
 
-                  <SelectTrigger
-                    className={`h-11 ${inputClass}`}
-                  >
-                    <SelectValue
-                      placeholder={
-                        isPT
-                          ? 'Selecionar localização'
-                          : 'Select location'
-                      }
-                    />
-                  </SelectTrigger>
+                  </label>
 
-                  <SelectContent
-                    className="border-blue-500/20 bg-[#0D1730] p-1 text-white shadow-2xl shadow-black/50"
+                  <Select
+                    value={
+                      equipment.location_id?.toString() ?? ''
+                    }
+                    onValueChange={(value) =>
+                      setEquipment({
+                        ...equipment,
+                        location_id:
+                          Number(value),
+                      })
+                    }
+                    disabled={!isEditing}
                   >
 
-                    {locations.map((location) => (
+                    <SelectTrigger
+                      className={`h-11 ${inputClass}`}
+                    >
+                      <SelectValue
+                        placeholder={
+                          isPT
+                            ? 'Selecionar localização'
+                            : 'Select location'
+                        }
+                      />
+                    </SelectTrigger>
 
-                      <SelectItem
-                        key={location.id}
-                        value={location.id.toString()}
-                        className={selectItemClass}
-                      >
+                    <SelectContent
+                      className="border-blue-500/20 bg-[#0D1730] p-1 text-white shadow-2xl shadow-black/50"
+                    >
 
-                        <div className="flex items-center gap-3">
+                      {locations.map((location) => (
 
-                          <MapPin className="h-4 w-4 text-blue-400/70" />
+                        <SelectItem
+                          key={location.id}
+                          value={location.id.toString()}
+                          className={selectItemClass}
+                        >
 
-                          <span>
-                            {location.name}
-                          </span>
+                          <div className="flex items-center gap-3">
 
-                        </div>
+                            <MapPin className="h-4 w-4 text-blue-400/70" />
 
-                      </SelectItem>
+                            <span>
+                              {location.name}
+                            </span>
 
-                    ))}
+                          </div>
 
-                  </SelectContent>
+                        </SelectItem>
 
-                </Select>
+                      ))}
+
+                    </SelectContent>
+
+                  </Select>
+
+                </div>
+
+                {/* PURCHASE DATE */}
+
+                <div>
+
+                  <label className={labelClass}>
+                    {isPT ? 'Data de Aquisição' : 'Purchase Date'}
+                  </label>
+
+                  <NexaDatePicker
+                    value={equipment.purchase_date}
+                    onChange={(value) =>
+                      setEquipment({
+                        ...equipment,
+                        purchase_date: value,
+                      })
+                    }
+                    disabled={!isEditing}
+                  />
+
+                </div>
 
               </div>
 
@@ -1718,7 +1870,7 @@ const EquipmentDetail = () => {
                 >
 
                   <SelectTrigger
-                    className={`h-11 ${inputClass}`}
+                    className={`h-11 ${inputClass} ${validationErrors.status ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}`}
                   >
                     <SelectValue />
                   </SelectTrigger>
@@ -1785,36 +1937,17 @@ const EquipmentDetail = () => {
 
                 </Select>
 
+                {validationErrors.status && (
+                  <p className="mt-1.5 text-xs text-red-400">
+                    {isPT ? 'O estado é obrigatório.' : 'Status is required.'}
+                  </p>
+                )}
+
               </div>
 
               {/* DATES */}
 
               <div className="space-y-5">
-
-                {/* PURCHASE DATE */}
-
-                <div>
-
-                  <label className={labelClass}>
-
-                    {isPT
-                      ? 'Data de Aquisição'
-                      : 'Purchase Date'}
-
-                  </label>
-
-                  <NexaDatePicker
-                    value={equipment.purchase_date}
-                    onChange={(value) =>
-                      setEquipment({
-                        ...equipment,
-                        purchase_date: value,
-                      })
-                    }
-                    disabled={!isEditing}
-                  />
-
-                </div>
 
                 {/* WARRANTY */}
 

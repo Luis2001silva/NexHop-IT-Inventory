@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/context/LanguageContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { AssignEquipmentForm } from "@/components/Equipment/AssignEquipmentForm";
 
 import {
   Search,
@@ -16,6 +17,8 @@ import {
   ChevronRight,
   Pencil,
   Package,
+  X,
+  UserPlus,
 } from "lucide-react";
 
 /* =========================================================
@@ -141,6 +144,13 @@ export default function EquipmentList() {
 
   const [isLoading, setIsLoading] =
     useState(true);
+
+  /* =======================================================
+     ASSIGN EQUIPMENT MODAL
+     ======================================================= */
+
+  const [isAssignModalOpen, setIsAssignModalOpen] =
+    useState(false);
 
   /* =========================================================
      LOAD EQUIPMENT
@@ -702,16 +712,32 @@ export default function EquipmentList() {
             =================================================== */}
 
         {isAdmin && (
-          <Link
-            to="/equipment/new"
-            className="flex h-10 items-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-500"
-          >
-            <Plus size={16} />
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() =>
+                setIsAssignModalOpen(true)
+              }
+              className="flex h-10 items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/10 px-4 text-sm font-semibold text-amber-400 transition hover:border-amber-500/30 hover:bg-amber-500/15 hover:text-amber-300"
+            >
+              <UserPlus size={16} />
 
-            {isPT
-              ? "Adicionar equipamento"
-              : "Add equipment"}
-          </Link>
+              {isPT
+                ? "Atribuir equipamento"
+                : "Assign equipment"}
+            </button>
+
+            <Link
+              to="/equipment/new"
+              className="flex h-10 items-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-500"
+            >
+              <Plus size={16} />
+
+              {isPT
+                ? "Adicionar equipamento"
+                : "Add equipment"}
+            </Link>
+          </div>
         )}
       </div>
 
@@ -1380,6 +1406,69 @@ export default function EquipmentList() {
           </>
         )}
       </div>
+      {/* =====================================================
+          ASSIGN EQUIPMENT MODAL
+          ===================================================== */}
+
+      {isAssignModalOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur-sm"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setIsAssignModalOpen(false);
+            }
+          }}
+        >
+          <div
+            className="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-visible rounded-2xl border border-white/[0.08] bg-[#080D1F] shadow-2xl shadow-black/60"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="assign-equipment-title"
+          >
+            <div className="flex items-center justify-between border-b border-white/[0.06] px-6 py-4">
+              <div>
+                <h2
+                  id="assign-equipment-title"
+                  className="text-base font-semibold text-white"
+                >
+                  {isPT
+                    ? "Atribuir equipamento"
+                    : "Assign equipment"}
+                </h2>
+
+                <p className="mt-1 text-xs text-white/35">
+                  {isPT
+                    ? "Seleciona um utilizador e depois um equipamento disponível."
+                    : "Select a user and then an available equipment."}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setIsAssignModalOpen(false)
+                }
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-white/35 transition hover:bg-white/[0.05] hover:text-white"
+                aria-label={
+                  isPT ? "Fechar" : "Close"
+                }
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto px-6 py-5">
+              <AssignEquipmentForm
+                onSuccess={async () => {
+                  setIsAssignModalOpen(false);
+                  await loadEquipment();
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

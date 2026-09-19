@@ -1,5 +1,9 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Navigate, Outlet } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import {
+  Navigate,
+  Outlet,
+  useNavigate,
+} from "react-router-dom";
 import {
   Search,
   Bell,
@@ -42,22 +46,6 @@ type Profile = {
 
 /* =========================================================
    APP LAYOUT
-
-   Layout principal do painel IT.
-
-   Utilizado por:
-   - Admin
-   - Viewer
-
-   O menu de perfil permite:
-   - Alterar idioma
-   - Alterar tema
-   - Terminar sessão
-
-   Nome, email e role são apenas de leitura.
-
-   O sino utiliza a tabela real:
-   public.notifications
    ========================================================= */
 
 const AppLayout = () => {
@@ -66,6 +54,8 @@ const AppLayout = () => {
      ======================================================= */
 
   const { user, loading, signOut } = useAuth();
+  const navigate = useNavigate();
+
   const { role, loading: roleLoading } = useUserRole();
 
   /* =======================================================
@@ -82,38 +72,47 @@ const AppLayout = () => {
      UI STATE
      ======================================================= */
 
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] =
+    useState(false);
+
+  const [profileOpen, setProfileOpen] =
+    useState(false);
+
+  const [notificationsOpen, setNotificationsOpen] =
+    useState(false);
 
   /* =======================================================
      PROFILE / NOTIFICATIONS
      ======================================================= */
 
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [profile, setProfile] =
+    useState<Profile | null>(null);
+
+  const [notifications, setNotifications] =
+    useState<Notification[]>([]);
+
+  const [notificationsLoading, setNotificationsLoading] =
+    useState(false);
 
   /* =======================================================
      REFS
-
-     Usados para fechar os popups quando o utilizador
-     clica fora deles.
      ======================================================= */
 
-  const profileMenuRef = useRef<HTMLDivElement>(null);
-  const notificationsRef = useRef<HTMLDivElement>(null);
+  const profileMenuRef =
+    useRef<HTMLDivElement>(null);
+
+  const notificationsRef =
+    useRef<HTMLDivElement>(null);
 
   /* =======================================================
      CARREGAR PERFIL
-
-     O nome vem da tabela profiles quando disponível.
-
-     Não existe nenhuma função de edição aqui.
      ======================================================= */
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      setProfile(null);
+      return;
+    }
 
     loadProfile();
   }, [user?.id]);
@@ -128,21 +127,27 @@ const AppLayout = () => {
       .maybeSingle();
 
     if (error) {
-      console.error("Erro ao carregar perfil:", error);
+      console.error(
+        "Erro ao carregar perfil:",
+        error
+      );
       return;
     }
 
-    setProfile((data as Profile | null) ?? null);
+    setProfile(
+      (data as Profile | null) ?? null
+    );
   }
 
   /* =======================================================
      CARREGAR NOTIFICAÇÕES
-
-     Utiliza a mesma estrutura do MyPortal.
      ======================================================= */
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      setNotifications([]);
+      return;
+    }
 
     loadNotifications();
   }, [user?.id]);
@@ -158,7 +163,9 @@ const AppLayout = () => {
         "id, user_id, title, message, type, read, created_at"
       )
       .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
+      .order("created_at", {
+        ascending: false,
+      })
       .limit(20);
 
     setNotificationsLoading(false);
@@ -171,21 +178,22 @@ const AppLayout = () => {
       return;
     }
 
-    setNotifications((data ?? []) as Notification[]);
+    setNotifications(
+      (data ?? []) as Notification[]
+    );
   }
 
   /* =======================================================
      REALTIME
-
-     Se uma notificação for criada ou alterada no Supabase,
-     o sino atualiza automaticamente.
      ======================================================= */
 
   useEffect(() => {
     if (!user?.id) return;
 
     const channel = supabase
-      .channel(`app-layout-notifications-${user.id}`)
+      .channel(
+        `app-layout-notifications-${user.id}`
+      )
       .on(
         "postgres_changes",
         {
@@ -207,13 +215,12 @@ const AppLayout = () => {
 
   /* =======================================================
      FECHAR POPUPS AO CLICAR FORA
-
-     Isto resolve exatamente o comportamento que querias:
-     clicar em qualquer zona fora do popup fecha-o.
      ======================================================= */
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = (
+      event: MouseEvent
+    ) => {
       const target = event.target as Node;
 
       if (
@@ -231,7 +238,10 @@ const AppLayout = () => {
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener(
+      "mousedown",
+      handleClickOutside
+    );
 
     return () => {
       document.removeEventListener(
@@ -246,15 +256,13 @@ const AppLayout = () => {
      ======================================================= */
 
   const toggleSidebar = () => {
-    setSidebarCollapsed((current) => !current);
+    setSidebarCollapsed(
+      (current) => !current
+    );
   };
 
   /* =======================================================
      USER NAME
-
-     Preferimos o nome guardado no profile.
-
-     Se não existir, usamos metadata/email como fallback.
      ======================================================= */
 
   const userName =
@@ -298,34 +306,38 @@ const AppLayout = () => {
      NOTIFICAÇÕES NÃO LIDAS
      ======================================================= */
 
-  const unreadNotifications = notifications.filter(
-    (notification) => !notification.read
-  ).length;
+  const unreadNotifications =
+    notifications.filter(
+      (notification) =>
+        !notification.read
+    ).length;
 
   /* =======================================================
      ABRIR PERFIL
-
-     Ao abrir perfil, fechamos notificações.
      ======================================================= */
 
   const toggleProfile = () => {
-    setProfileOpen((current) => !current);
+    setProfileOpen(
+      (current) => !current
+    );
+
     setNotificationsOpen(false);
   };
 
   /* =======================================================
      ABRIR NOTIFICAÇÕES
-
-     Ao abrir notificações, fechamos perfil.
      ======================================================= */
 
   const toggleNotifications = () => {
-    setNotificationsOpen((current) => !current);
+    setNotificationsOpen(
+      (current) => !current
+    );
+
     setProfileOpen(false);
   };
 
   /* =======================================================
-     MARCAR UMA NOTIFICAÇÃO COMO LIDA
+     MARCAR NOTIFICAÇÃO COMO LIDA
      ======================================================= */
 
   const markNotificationAsRead = async (
@@ -333,17 +345,25 @@ const AppLayout = () => {
   ) => {
     if (!user?.id) return;
 
-    const notification = notifications.find(
-      (item) => item.id === notificationId
-    );
+    const notification =
+      notifications.find(
+        (item) =>
+          item.id === notificationId
+      );
 
-    if (!notification || notification.read) return;
+    if (
+      !notification ||
+      notification.read
+    ) {
+      return;
+    }
 
-    const { error } = await (supabase as any)
-      .from("notifications")
-      .update({ read: true })
-      .eq("id", notificationId)
-      .eq("user_id", user.id);
+    const { error } =
+      await (supabase as any)
+        .from("notifications")
+        .update({ read: true })
+        .eq("id", notificationId)
+        .eq("user_id", user.id);
 
     if (error) {
       console.error(
@@ -353,12 +373,16 @@ const AppLayout = () => {
       return;
     }
 
-    setNotifications((current) =>
-      current.map((item) =>
-        item.id === notificationId
-          ? { ...item, read: true }
-          : item
-      )
+    setNotifications(
+      (current) =>
+        current.map((item) =>
+          item.id === notificationId
+            ? {
+                ...item,
+                read: true,
+              }
+            : item
+        )
     );
   };
 
@@ -366,39 +390,54 @@ const AppLayout = () => {
      MARCAR TODAS COMO LIDAS
      ======================================================= */
 
-  const markAllNotificationsAsRead = async () => {
-    if (!user?.id || unreadNotifications === 0) return;
+  const markAllNotificationsAsRead =
+    async () => {
+      if (
+        !user?.id ||
+        unreadNotifications === 0
+      ) {
+        return;
+      }
 
-    const { error } = await (supabase as any)
-      .from("notifications")
-      .update({ read: true })
-      .eq("user_id", user.id)
-      .eq("read", false);
+      const { error } =
+        await (supabase as any)
+          .from("notifications")
+          .update({ read: true })
+          .eq("user_id", user.id)
+          .eq("read", false);
 
-    if (error) {
-      console.error(
-        "Erro ao marcar notificações:",
-        error
+      if (error) {
+        console.error(
+          "Erro ao marcar notificações:",
+          error
+        );
+        return;
+      }
+
+      setNotifications(
+        (current) =>
+          current.map((item) => ({
+            ...item,
+            read: true,
+          }))
       );
-      return;
-    }
-
-    setNotifications((current) =>
-      current.map((item) => ({
-        ...item,
-        read: true,
-      }))
-    );
-  };
+    };
 
   /* =======================================================
-     FORMATAÇÃO DA DATA DAS NOTIFICAÇÕES
+     FORMATAÇÃO DATA
      ======================================================= */
 
-  const formatNotificationDate = (date: string) => {
-    const parsedDate = new Date(date);
+  const formatNotificationDate = (
+    date: string
+  ) => {
+    const parsedDate =
+      new Date(date);
 
-    if (Number.isNaN(parsedDate.getTime())) {
+    if (
+      Number.isNaN(
+        parsedDate.getTime()
+      )
+    ) {
       return "—";
     }
 
@@ -417,11 +456,16 @@ const AppLayout = () => {
      LOADING
      ======================================================= */
 
-  if (loading || roleLoading) {
+  if (
+    loading ||
+    roleLoading
+  ) {
     return (
       <div className="flex h-screen items-center justify-center bg-[#080D1F] text-white">
         <div className="animate-pulse text-sm">
-          {isPT ? "A carregar..." : "Loading..."}
+          {isPT
+            ? "A carregar..."
+            : "Loading..."}
         </div>
       </div>
     );
@@ -432,28 +476,37 @@ const AppLayout = () => {
      ======================================================= */
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return (
+      <Navigate
+        to="/login"
+        replace
+      />
+    );
   }
 
   /* =======================================================
      TEMA
      ======================================================= */
 
-  const pageBackground = isLight
-    ? "bg-[#E5E7EB]"
-    : "bg-[#080D1F]";
+  const pageBackground =
+    isLight
+      ? "bg-[#E5E7EB]"
+      : "bg-[#080D1F]";
 
-  const headerBackground = isLight
-    ? "bg-[#E5E7EB]"
-    : "bg-[#080D1F]";
+  const headerBackground =
+    isLight
+      ? "bg-[#E5E7EB]"
+      : "bg-[#080D1F]";
 
-  const popupBackground = isLight
-    ? "bg-[#F8FAFC]"
-    : "bg-[#0D1730]";
+  const popupBackground =
+    isLight
+      ? "bg-[#F8FAFC]"
+      : "bg-[#0D1730]";
 
-  const popupBorder = isLight
-    ? "border-slate-200"
-    : "border-white/[0.08]";
+  const popupBorder =
+    isLight
+      ? "border-slate-200"
+      : "border-white/[0.08]";
 
   /* =======================================================
      MAIN
@@ -462,7 +515,9 @@ const AppLayout = () => {
   return (
     <div
       className={`flex h-screen overflow-hidden ${pageBackground} ${
-        isLight ? "text-slate-900" : "text-white"
+        isLight
+          ? "text-slate-900"
+          : "text-white"
       }`}
     >
       {/* ===================================================
@@ -479,6 +534,7 @@ const AppLayout = () => {
           =================================================== */}
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+
         {/* =================================================
             HEADER
             ================================================= */}
@@ -490,9 +546,8 @@ const AppLayout = () => {
               : "border-white/[0.06]"
           } ${headerBackground}`}
         >
-          {/* =================================================
-              SEARCH
-              ================================================= */}
+
+          {/* SEARCH */}
 
           <div className="relative w-full max-w-[360px]">
             <Search
@@ -507,7 +562,9 @@ const AppLayout = () => {
             <input
               type="text"
               placeholder={
-                isPT ? "Pesquisar..." : "Search..."
+                isPT
+                  ? "Pesquisar..."
+                  : "Search..."
               }
               className={`h-9 w-full rounded-lg border pl-9 pr-3 text-xs outline-none transition ${
                 isLight
@@ -517,11 +574,10 @@ const AppLayout = () => {
             />
           </div>
 
-          {/* =================================================
-              HEADER RIGHT
-              ================================================= */}
+          {/* HEADER RIGHT */}
 
           <div className="ml-4 flex items-center gap-2">
+
             {/* =================================================
                 NOTIFICATIONS
                 ================================================= */}
@@ -532,7 +588,9 @@ const AppLayout = () => {
             >
               <button
                 type="button"
-                onClick={toggleNotifications}
+                onClick={
+                  toggleNotifications
+                }
                 aria-label={
                   isPT
                     ? "Notificações"
@@ -546,9 +604,8 @@ const AppLayout = () => {
               >
                 <Bell size={17} />
 
-                {/* PONTO AZUL */}
-
-                {unreadNotifications > 0 && (
+                {unreadNotifications >
+                  0 && (
                   <span
                     className={`absolute right-[6px] top-[5px] h-2.5 w-2.5 rounded-full border-2 ${
                       isLight
@@ -559,14 +616,13 @@ const AppLayout = () => {
                 )}
               </button>
 
-              {/* =================================================
-                  NOTIFICATIONS POPUP
-                  ================================================= */}
+              {/* NOTIFICATIONS POPUP */}
 
               {notificationsOpen && (
                 <div
                   className={`absolute right-0 top-full z-50 mt-2 w-[360px] overflow-hidden rounded-2xl border ${popupBorder} ${popupBackground} shadow-2xl`}
                 >
+
                   {/* POPUP HEADER */}
 
                   <div
@@ -577,6 +633,7 @@ const AppLayout = () => {
                     }`}
                   >
                     <div>
+
                       <div
                         className={`text-sm font-semibold ${
                           isLight
@@ -596,7 +653,8 @@ const AppLayout = () => {
                             : "text-white/35"
                         }`}
                       >
-                        {unreadNotifications > 0
+                        {unreadNotifications >
+                        0
                           ? isPT
                             ? `${unreadNotifications} por ler`
                             : `${unreadNotifications} unread`
@@ -604,10 +662,13 @@ const AppLayout = () => {
                             ? "Tudo lido"
                             : "All caught up"}
                       </div>
+
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {unreadNotifications > 0 && (
+
+                      {unreadNotifications >
+                        0 && (
                         <button
                           type="button"
                           onClick={
@@ -624,7 +685,9 @@ const AppLayout = () => {
                       <button
                         type="button"
                         onClick={() =>
-                          setNotificationsOpen(false)
+                          setNotificationsOpen(
+                            false
+                          )
                         }
                         className={`rounded-lg p-1 transition ${
                           isLight
@@ -634,14 +697,17 @@ const AppLayout = () => {
                       >
                         <X size={15} />
                       </button>
+
                     </div>
                   </div>
 
                   {/* NOTIFICATIONS */}
 
                   <div className="max-h-[390px] overflow-y-auto">
+
                     {notificationsLoading ? (
                       <div className="flex items-center justify-center px-6 py-10">
+
                         <span
                           className={`h-5 w-5 animate-spin rounded-full border-2 ${
                             isLight
@@ -649,9 +715,12 @@ const AppLayout = () => {
                               : "border-white/10 border-t-blue-400"
                           }`}
                         />
+
                       </div>
-                    ) : notifications.length === 0 ? (
+                    ) : notifications.length ===
+                      0 ? (
                       <div className="px-6 py-12 text-center">
+
                         <div
                           className={`mx-auto flex h-11 w-11 items-center justify-center rounded-full ${
                             isLight
@@ -685,12 +754,17 @@ const AppLayout = () => {
                             ? "Quando houver novidades, aparecem aqui."
                             : "New updates will appear here."}
                         </p>
+
                       </div>
                     ) : (
                       notifications.map(
-                        (notification) => (
+                        (
+                          notification
+                        ) => (
                           <button
-                            key={notification.id}
+                            key={
+                              notification.id
+                            }
                             type="button"
                             onClick={() =>
                               markNotificationAsRead(
@@ -709,7 +783,6 @@ const AppLayout = () => {
                                 : ""
                             }`}
                           >
-                            {/* ÍCONE */}
 
                             <div
                               className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
@@ -728,10 +801,10 @@ const AppLayout = () => {
                               <Bell size={15} />
                             </div>
 
-                            {/* CONTEÚDO */}
-
                             <div className="min-w-0 flex-1">
+
                               <div className="flex items-start gap-2">
+
                                 <p
                                   className={`flex-1 text-xs font-semibold ${
                                     isLight
@@ -739,12 +812,15 @@ const AppLayout = () => {
                                       : "text-white"
                                   }`}
                                 >
-                                  {notification.title}
+                                  {
+                                    notification.title
+                                  }
                                 </p>
 
                                 {!notification.read && (
                                   <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />
                                 )}
+
                               </div>
 
                               <p
@@ -754,7 +830,9 @@ const AppLayout = () => {
                                     : "text-white/45"
                                 }`}
                               >
-                                {notification.message}
+                                {
+                                  notification.message
+                                }
                               </p>
 
                               <p
@@ -768,16 +846,20 @@ const AppLayout = () => {
                                   notification.created_at
                                 )}
                               </p>
+
                             </div>
+
                           </button>
                         )
                       )
                     )}
+
                   </div>
 
                   {/* FOOTER */}
 
-                  {notifications.length > 0 && (
+                  {notifications.length >
+                    0 && (
                     <div
                       className={`border-t p-2 ${
                         isLight
@@ -800,8 +882,10 @@ const AppLayout = () => {
                       </div>
                     </div>
                   )}
+
                 </div>
               )}
+
             </div>
 
             {/* =================================================
@@ -816,6 +900,7 @@ const AppLayout = () => {
                   : "border-white/[0.06]"
               }`}
             >
+
               <button
                 type="button"
                 onClick={toggleProfile}
@@ -825,15 +910,13 @@ const AppLayout = () => {
                     : "hover:bg-white/[0.04]"
                 }`}
               >
-                {/* AVATAR */}
 
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#263A5C] text-[11px] font-semibold text-white">
                   {initials}
                 </div>
 
-                {/* USER */}
-
                 <div className="hidden text-left leading-tight sm:block">
+
                   <div
                     className={`text-[11px] font-semibold ${
                       isLight
@@ -853,28 +936,31 @@ const AppLayout = () => {
                   >
                     {userRole}
                   </div>
+
                 </div>
 
                 <ChevronDown
                   size={14}
                   className={`transition-transform ${
-                    profileOpen ? "rotate-180" : ""
+                    profileOpen
+                      ? "rotate-180"
+                      : ""
                   } ${
                     isLight
                       ? "text-slate-400"
                       : "text-white/40"
                   }`}
                 />
+
               </button>
 
-              {/* =================================================
-                  PROFILE POPUP
-                  ================================================= */}
+              {/* PROFILE POPUP */}
 
               {profileOpen && (
                 <div
                   className={`absolute right-0 top-full z-50 mt-2 w-[260px] overflow-hidden rounded-2xl border ${popupBorder} ${popupBackground} p-2 shadow-2xl`}
                 >
+
                   {/* USER INFO */}
 
                   <div
@@ -884,6 +970,7 @@ const AppLayout = () => {
                         : "border-white/[0.06]"
                     }`}
                   >
+
                     <div
                       className={`text-xs font-semibold ${
                         isLight
@@ -915,11 +1002,10 @@ const AppLayout = () => {
                     >
                       {userRole}
                     </div>
+
                   </div>
 
-                  {/* =================================================
-                      LANGUAGE
-                      ================================================= */}
+                  {/* LANGUAGE */}
 
                   <div
                     className={`border-b px-2 py-3 ${
@@ -928,6 +1014,7 @@ const AppLayout = () => {
                         : "border-white/[0.06]"
                     }`}
                   >
+
                     <p
                       className={`mb-2 px-1 text-[9px] font-semibold uppercase tracking-wider ${
                         isLight
@@ -935,11 +1022,12 @@ const AppLayout = () => {
                           : "text-white/30"
                       }`}
                     >
-                      {isPT ? "Idioma" : "Language"}
+                      {isPT
+                        ? "Idioma"
+                        : "Language"}
                     </p>
 
                     <div className="grid grid-cols-2 gap-1">
-                      {/* PORTUGUÊS */}
 
                       <button
                         type="button"
@@ -956,12 +1044,11 @@ const AppLayout = () => {
                       >
                         Português
 
-                        {language === "pt" && (
+                        {language ===
+                          "pt" && (
                           <Check size={12} />
                         )}
                       </button>
-
-                      {/* ENGLISH */}
 
                       <button
                         type="button"
@@ -978,16 +1065,16 @@ const AppLayout = () => {
                       >
                         English
 
-                        {language === "en" && (
+                        {language ===
+                          "en" && (
                           <Check size={12} />
                         )}
                       </button>
+
                     </div>
                   </div>
 
-                  {/* =================================================
-                      THEME
-                      ================================================= */}
+                  {/* THEME */}
 
                   <div
                     className={`border-b px-2 py-3 ${
@@ -996,6 +1083,7 @@ const AppLayout = () => {
                         : "border-white/[0.06]"
                     }`}
                   >
+
                     <p
                       className={`mb-2 px-1 text-[9px] font-semibold uppercase tracking-wider ${
                         isLight
@@ -1003,11 +1091,12 @@ const AppLayout = () => {
                           : "text-white/30"
                       }`}
                     >
-                      {isPT ? "Tema" : "Theme"}
+                      {isPT
+                        ? "Tema"
+                        : "Theme"}
                     </p>
 
                     <div className="grid grid-cols-2 gap-1">
-                      {/* DARK */}
 
                       <button
                         type="button"
@@ -1029,8 +1118,6 @@ const AppLayout = () => {
                           : "Dark"}
                       </button>
 
-                      {/* LIGHT */}
-
                       <button
                         type="button"
                         onClick={() =>
@@ -1050,6 +1137,7 @@ const AppLayout = () => {
                           ? "Claro"
                           : "Light"}
                       </button>
+
                     </div>
                   </div>
 
@@ -1059,7 +1147,31 @@ const AppLayout = () => {
 
                   <button
                     type="button"
-                    onClick={signOut}
+                    onClick={async () => {
+                      try {
+                        await signOut();
+
+                        setProfileOpen(
+                          false
+                        );
+
+                        setNotificationsOpen(
+                          false
+                        );
+
+                        navigate(
+                          "/login",
+                          {
+                            replace: true,
+                          }
+                        );
+                      } catch (error) {
+                        console.error(
+                          "Erro ao terminar sessão:",
+                          error
+                        );
+                      }
+                    }}
                     className={`mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-xs transition ${
                       isLight
                         ? "text-slate-600 hover:bg-slate-100 hover:text-red-600"
@@ -1072,8 +1184,10 @@ const AppLayout = () => {
                       ? "Terminar sessão"
                       : "Sign out"}
                   </button>
+
                 </div>
               )}
+
             </div>
           </div>
         </header>
@@ -1090,13 +1204,12 @@ const AppLayout = () => {
           }}
         >
           <div className="flex min-h-full flex-col">
+
             <div className="flex-1 px-6 lg:px-8">
               <Outlet />
             </div>
 
-            {/* =================================================
-                FOOTER
-                ================================================= */}
+            {/* FOOTER */}
 
             <footer
               className={`flex h-12 shrink-0 items-center justify-between border-t px-6 text-[10px] ${
@@ -1105,9 +1218,12 @@ const AppLayout = () => {
                   : "border-white/[0.06] text-white/35"
               }`}
             >
-              <span>NexHop © 2026</span>
+              <span>
+                NexHop © 2026
+              </span>
 
               <span className="flex items-center gap-1.5 text-emerald-400">
+
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
 
                 <span>
@@ -1115,17 +1231,17 @@ const AppLayout = () => {
                     ? "Estado do sistema: operacional"
                     : "System status: operational"}
                 </span>
+
               </span>
             </footer>
+
           </div>
         </main>
+
       </div>
 
-      {/* =====================================================
-          TOASTER
-          ===================================================== */}
-
       <Toaster position="top-right" />
+
     </div>
   );
 };
