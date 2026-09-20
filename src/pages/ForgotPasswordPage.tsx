@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+
 import {
   ArrowLeft,
   ArrowRight,
@@ -10,78 +11,95 @@ import {
   LockKeyhole,
   Mail,
   ShieldCheck,
-} from 'lucide-react';
-import { toast } from 'sonner';
+} from "lucide-react";
 
-import { useLanguage } from '@/context/LanguageContext';
-import { supabase } from '@/integrations/supabase/client';
+import { toast } from "sonner";
+
+import { useLanguage } from "@/context/LanguageContext";
+import { supabase } from "@/integrations/supabase/client";
 
 type RecoveryStep =
-  | 'request'
-  | 'pending'
-  | 'code'
-  | 'password'
-  | 'success';
+  | "request"
+  | "pending"
+  | "code"
+  | "password"
+  | "success";
 
 const ForgotPasswordPage = () => {
   const { language } = useLanguage();
 
   const [step, setStep] =
-    useState<RecoveryStep>('request');
+    useState<RecoveryStep>("request");
 
-  const [email, setEmail] = useState('');
-  const [emailError, setEmailError] = useState('');
+  const [email, setEmail] = useState("");
+  const [emailError, setEmailError] =
+    useState("");
 
   const [code, setCode] = useState<string[]>([
-    '',
-    '',
-    '',
-    '',
-    '',
-    '',
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
   ]);
 
-  const [codeError, setCodeError] = useState('');
-  const [isValidatingCode, setIsValidatingCode] =
-    useState(false);
+  const [codeError, setCodeError] =
+    useState("");
 
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] =
-    useState('');
+  const [
+    isValidatingCode,
+    setIsValidatingCode,
+  ] = useState(false);
 
-  const [passwordError, setPasswordError] =
-    useState('');
+  const [password, setPassword] =
+    useState("");
+
+  const [
+    confirmPassword,
+    setConfirmPassword,
+  ] = useState("");
+
+  const [
+    passwordError,
+    setPasswordError,
+  ] = useState("");
 
   const [
     confirmPasswordError,
     setConfirmPasswordError,
-  ] = useState('');
+  ] = useState("");
 
-  const [showPassword, setShowPassword] =
-    useState(false);
+  const [
+    showPassword,
+    setShowPassword,
+  ] = useState(false);
 
   const [
     showConfirmPassword,
     setShowConfirmPassword,
   ] = useState(false);
 
-  const [isSubmitting, setIsSubmitting] =
-    useState(false);
+  const [
+    isSubmitting,
+    setIsSubmitting,
+  ] = useState(false);
 
-  const isPT = language === 'pt';
+  const isPT = language === "pt";
 
   /* =========================================================
-     EMAIL
+     EMAIL VALIDATION
   ========================================================= */
 
   const validateEmail = () => {
-    const trimmedEmail = email.trim();
+    const trimmedEmail =
+      email.trim();
 
     if (!trimmedEmail) {
       setEmailError(
         isPT
-          ? 'O email é obrigatório.'
-          : 'Email is required.'
+          ? "O email é obrigatório."
+          : "Email is required."
       );
 
       return false;
@@ -94,14 +112,14 @@ const ForgotPasswordPage = () => {
     ) {
       setEmailError(
         isPT
-          ? 'Introduza um email válido.'
-          : 'Enter a valid email address.'
+          ? "Introduza um email válido."
+          : "Enter a valid email address."
       );
 
       return false;
     }
 
-    setEmailError('');
+    setEmailError("");
 
     return true;
   };
@@ -112,7 +130,7 @@ const ForgotPasswordPage = () => {
     setEmail(value);
 
     if (emailError) {
-      setEmailError('');
+      setEmailError("");
     }
   };
 
@@ -132,48 +150,186 @@ const ForgotPasswordPage = () => {
     setIsSubmitting(true);
 
     try {
-      const { error } =
-        await (supabase.rpc as any)(
-          'request_password_reset',
+      const { data, error } =
+        await supabase.rpc(
+          "request_password_reset",
           {
-            p_email: email.trim(),
+            p_email:
+              email.trim(),
           }
         );
 
       if (error) {
         console.error(
-          'Erro ao criar pedido:',
+          "Erro ao criar pedido:",
           error
         );
 
         toast.error(
           isPT
-            ? 'Não foi possível criar o pedido de recuperação.'
-            : 'Unable to create the recovery request.'
+            ? "Não foi possível criar o pedido de recuperação."
+            : "Unable to create the recovery request."
         );
 
         return;
       }
 
-      setStep('pending');
+      /*
+       * A RPC devolve false quando o email não
+       * existe na base de dados.
+       */
+      if (data !== true) {
+        setEmailError(
+          isPT
+            ? "Este email não está registado no sistema."
+            : "This email is not registered in the system."
+        );
+
+        toast.error(
+          isPT
+            ? "O email não está registado no sistema."
+            : "The email is not registered in the system."
+        );
+
+        return;
+      }
+
+      setStep("pending");
 
       toast.success(
         isPT
-          ? 'Pedido enviado para o administrador.'
-          : 'Request sent to the administrator.'
+          ? "Pedido enviado para o administrador."
+          : "Request sent to the administrator."
       );
     } catch (error) {
       console.error(error);
 
       toast.error(
         isPT
-          ? 'Ocorreu um erro. Tente novamente.'
-          : 'Something went wrong. Please try again.'
+          ? "Ocorreu um erro. Tente novamente."
+          : "Something went wrong. Please try again."
       );
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  /* =========================================================
+     CHECK RECOVERY REQUEST STATUS
+  ========================================================= */
+
+  useEffect(() => {
+    if (step !== "pending" || !email.trim()) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const checkRequestStatus = async () => {
+      try {
+        const { data, error } =
+          await supabase.rpc(
+            "get_password_reset_status",
+            {
+              p_email: email.trim(),
+            }
+          );
+
+        if (cancelled || error) {
+          if (error) {
+            console.error(
+              "Erro ao consultar estado do pedido:",
+              error
+            );
+          }
+
+          return;
+        }
+
+        const result =
+          Array.isArray(data)
+            ? data[0]
+            : data;
+
+        if (!result?.status) {
+          return;
+        }
+
+        if (
+          result.status === "approved"
+        ) {
+          setStep("code");
+
+          toast.success(
+            isPT
+              ? "Pedido aprovado. Introduza o código de recuperação."
+              : "Request approved. Enter the recovery code."
+          );
+
+          return;
+        }
+
+        if (
+          result.status === "rejected"
+        ) {
+          setStep("request");
+          setEmailError(
+            isPT
+              ? "O administrador recusou o pedido de recuperação."
+              : "The administrator rejected the recovery request."
+          );
+
+          toast.error(
+            isPT
+              ? "O pedido de recuperação foi recusado."
+              : "The recovery request was rejected."
+          );
+
+          return;
+        }
+
+        if (
+          result.status === "expired"
+        ) {
+          setStep("request");
+          setEmailError(
+            isPT
+              ? "O pedido de recuperação expirou. Faça um novo pedido."
+              : "The recovery request expired. Please submit a new request."
+          );
+
+          toast.error(
+            isPT
+              ? "O pedido de recuperação expirou."
+              : "The recovery request expired."
+          );
+
+          return;
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error(
+            "Erro ao consultar estado do pedido:",
+            error
+          );
+        }
+      }
+    };
+
+    void checkRequestStatus();
+
+    const interval = window.setInterval(
+      () => {
+        void checkRequestStatus();
+      },
+      2000
+    );
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [step, email, isPT]);
 
   /* =========================================================
      CODE INPUT
@@ -184,7 +340,7 @@ const ForgotPasswordPage = () => {
     value: string
   ) => {
     const digit = value
-      .replace(/\D/g, '')
+      .replace(/\D/g, "")
       .slice(-1);
 
     const newCode = [...code];
@@ -192,9 +348,12 @@ const ForgotPasswordPage = () => {
     newCode[index] = digit;
 
     setCode(newCode);
-    setCodeError('');
+    setCodeError("");
 
-    if (digit && index < 5) {
+    if (
+      digit &&
+      index < 5
+    ) {
       document
         .getElementById(
           `recovery-code-${index + 1}`
@@ -212,7 +371,7 @@ const ForgotPasswordPage = () => {
     e: React.KeyboardEvent<HTMLInputElement>
   ) => {
     if (
-      e.key === 'Backspace' &&
+      e.key === "Backspace" &&
       !code[index] &&
       index > 0
     ) {
@@ -224,7 +383,7 @@ const ForgotPasswordPage = () => {
     }
 
     if (
-      e.key === 'ArrowLeft' &&
+      e.key === "ArrowLeft" &&
       index > 0
     ) {
       document
@@ -235,7 +394,7 @@ const ForgotPasswordPage = () => {
     }
 
     if (
-      e.key === 'ArrowRight' &&
+      e.key === "ArrowRight" &&
       index < 5
     ) {
       document
@@ -255,30 +414,33 @@ const ForgotPasswordPage = () => {
   ) => {
     e.preventDefault();
 
-    const pastedCode = e.clipboardData
-      .getData('text')
-      .replace(/\D/g, '')
-      .slice(0, 6);
+    const pastedCode =
+      e.clipboardData
+        .getData("text")
+        .replace(/\D/g, "")
+        .slice(0, 6);
 
     if (!pastedCode) return;
 
     const newCode = [
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
     ];
 
     pastedCode
-      .split('')
-      .forEach((digit, index) => {
-        newCode[index] = digit;
-      });
+      .split("")
+      .forEach(
+        (digit, index) => {
+          newCode[index] = digit;
+        }
+      );
 
     setCode(newCode);
-    setCodeError('');
+    setCodeError("");
 
     const focusIndex = Math.min(
       pastedCode.length,
@@ -293,7 +455,7 @@ const ForgotPasswordPage = () => {
   };
 
   /* =========================================================
-     VALIDATE CODE
+     VALIDATE REAL RECOVERY CODE
   ========================================================= */
 
   const handleValidateCode = async (
@@ -303,77 +465,93 @@ const ForgotPasswordPage = () => {
 
     if (isValidatingCode) return;
 
-    const fullCode = code.join('');
+    const fullCode =
+      code.join("");
 
     if (fullCode.length !== 6) {
       setCodeError(
         isPT
-          ? 'Introduza o código completo de 6 dígitos.'
-          : 'Enter the complete 6-digit code.'
+          ? "Introduza o código completo de 6 dígitos."
+          : "Enter the complete 6-digit code."
       );
 
       return;
     }
 
     setIsValidatingCode(true);
-    setCodeError('');
+    setCodeError("");
 
     try {
       const { data, error } =
-        await (supabase.rpc as any)(
-          'validate_password_reset_code',
+        await supabase.rpc(
+          "validate_password_reset_code",
           {
-            p_email: email.trim(),
-            p_code: fullCode,
+            p_email:
+              email.trim(),
+            p_code:
+              fullCode,
           }
         );
 
       if (error) {
         console.error(
-          'Erro ao validar código:',
+          "Erro ao validar código:",
           error
         );
 
         setCodeError(
           isPT
-            ? 'Não foi possível validar o código.'
-            : 'Unable to validate the code.'
+            ? "Não foi possível validar o código."
+            : "Unable to validate the code."
         );
 
         return;
       }
 
-      const result = Array.isArray(data)
-        ? data[0]
-        : data;
+      const result =
+        Array.isArray(data)
+          ? data[0]
+          : data;
 
       if (
         !result ||
-        !result.valid
+        !result.valid ||
+        !result.user_id ||
+        !result.request_id
       ) {
         setCodeError(
           isPT
-            ? 'Código inválido ou expirado.'
-            : 'Invalid or expired code.'
+            ? "Código inválido ou expirado."
+            : "Invalid or expired code."
         );
 
         return;
       }
 
+      /*
+       * O código é apenas validado aqui.
+       *
+       * Ainda NÃO é consumido.
+       * Será consumido pela Edge Function
+       * quando a nova password for efetivamente
+       * alterada.
+       */
+
+      setCodeError("");
+      setStep("password");
+
       toast.success(
         isPT
-          ? 'Código validado com sucesso.'
-          : 'Code validated successfully.'
+          ? "Código validado."
+          : "Code validated."
       );
-
-      setStep('password');
     } catch (error) {
       console.error(error);
 
       setCodeError(
         isPT
-          ? 'Ocorreu um erro ao validar o código.'
-          : 'An error occurred while validating the code.'
+          ? "Ocorreu um erro ao validar o código."
+          : "An error occurred while validating the code."
       );
     } finally {
       setIsValidatingCode(false);
@@ -390,28 +568,30 @@ const ForgotPasswordPage = () => {
     if (!password) {
       setPasswordError(
         isPT
-          ? 'A nova palavra-passe é obrigatória.'
-          : 'New password is required.'
+          ? "A nova palavra-passe é obrigatória."
+          : "New password is required."
       );
 
       valid = false;
-    } else if (password.length < 8) {
+    } else if (
+      password.length < 8
+    ) {
       setPasswordError(
         isPT
-          ? 'A palavra-passe deve ter pelo menos 8 caracteres.'
-          : 'Password must contain at least 8 characters.'
+          ? "A palavra-passe deve ter pelo menos 8 caracteres."
+          : "Password must contain at least 8 characters."
       );
 
       valid = false;
     } else {
-      setPasswordError('');
+      setPasswordError("");
     }
 
     if (!confirmPassword) {
       setConfirmPasswordError(
         isPT
-          ? 'Confirme a palavra-passe.'
-          : 'Please confirm your password.'
+          ? "Confirme a nova palavra-passe."
+          : "Confirm your new password."
       );
 
       valid = false;
@@ -420,13 +600,13 @@ const ForgotPasswordPage = () => {
     ) {
       setConfirmPasswordError(
         isPT
-          ? 'As palavras-passe não coincidem.'
-          : 'Passwords do not match.'
+          ? "As palavras-passe não coincidem."
+          : "Passwords do not match."
       );
 
       valid = false;
     } else {
-      setConfirmPasswordError('');
+      setConfirmPasswordError("");
     }
 
     return valid;
@@ -438,7 +618,7 @@ const ForgotPasswordPage = () => {
     setPassword(value);
 
     if (passwordError) {
-      setPasswordError('');
+      setPasswordError("");
     }
   };
 
@@ -448,7 +628,7 @@ const ForgotPasswordPage = () => {
     setConfirmPassword(value);
 
     if (confirmPasswordError) {
-      setConfirmPasswordError('');
+      setConfirmPasswordError("");
     }
   };
 
@@ -463,18 +643,23 @@ const ForgotPasswordPage = () => {
 
     if (isSubmitting) return;
 
-    if (!validatePassword()) return;
+    if (!validatePassword()) {
+      return;
+    }
 
-    const fullCode = code.join('');
+    const fullCode =
+      code.join("");
 
-    if (fullCode.length !== 6) {
-      setStep('code');
-
+    if (
+      fullCode.length !== 6
+    ) {
       setCodeError(
         isPT
-          ? 'Introduza o código completo de 6 dígitos.'
-          : 'Enter the complete 6-digit code.'
+          ? "Código de recuperação inválido."
+          : "Invalid recovery code."
       );
+
+      setStep("code");
 
       return;
     }
@@ -482,12 +667,22 @@ const ForgotPasswordPage = () => {
     setIsSubmitting(true);
 
     try {
-      const { data, error } =
+      /*
+       * A alteração real da password acontece
+       * numa Edge Function com privilégios de
+       * servidor.
+       */
+
+      const {
+        data,
+        error,
+      } =
         await supabase.functions.invoke(
-          'reset-password-with-code',
+          "reset-password-with-code",
           {
             body: {
-              email: email.trim(),
+              email:
+                email.trim(),
               code: fullCode,
               password,
             },
@@ -496,45 +691,79 @@ const ForgotPasswordPage = () => {
 
       if (error) {
         console.error(
-          'Erro ao alterar password:',
+          "Erro na recuperação de password:",
           error
+        );
+
+        setPasswordError(
+          isPT
+            ? "Não foi possível alterar a palavra-passe."
+            : "Unable to change the password."
         );
 
         toast.error(
           isPT
-            ? 'Não foi possível alterar a palavra-passe.'
-            : 'Unable to change the password.'
+            ? "Não foi possível alterar a palavra-passe."
+            : "Unable to change the password."
         );
 
         return;
       }
 
-      if (!data?.success) {
-        setStep('code');
+      if (
+        !data ||
+        data.success !== true
+      ) {
+        console.error(
+          "Resposta inesperada:",
+          data
+        );
 
-        setCodeError(
+        setPasswordError(
           isPT
-            ? 'Código inválido ou expirado.'
-            : 'Invalid or expired recovery code.'
+            ? "Não foi possível concluir a recuperação."
+            : "Unable to complete the recovery."
+        );
+
+        toast.error(
+          isPT
+            ? "Não foi possível concluir a recuperação."
+            : "Unable to complete the recovery."
         );
 
         return;
       }
 
-      setStep('success');
+      /*
+       * Só chegamos aqui depois de a Edge Function
+       * alterar efetivamente a password.
+       */
+
+      setPassword("");
+      setConfirmPassword("");
+      setCode([
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+      ]);
+
+      setStep("success");
 
       toast.success(
         isPT
-          ? 'Palavra-passe alterada com sucesso!'
-          : 'Password changed successfully!'
+          ? "Palavra-passe alterada com sucesso."
+          : "Password changed successfully."
       );
     } catch (error) {
       console.error(error);
 
       toast.error(
         isPT
-          ? 'Ocorreu um erro. Tente novamente.'
-          : 'Something went wrong. Please try again.'
+          ? "Ocorreu um erro. Tente novamente."
+          : "Something went wrong. Please try again."
       );
     } finally {
       setIsSubmitting(false);
@@ -546,18 +775,25 @@ const ForgotPasswordPage = () => {
   ========================================================= */
 
   const handleBack = () => {
-    if (step === 'code') {
-      setStep('pending');
+    if (
+      step === "code"
+    ) {
+      setStep("pending");
       return;
     }
 
-    if (step === 'password') {
-      setStep('code');
+    if (
+      step === "password"
+    ) {
+      setStep("code");
       return;
     }
 
-    if (step === 'pending') {
-      setStep('request');
+    if (
+      step === "pending"
+    ) {
+      setStep("request");
+      setEmailError("");
       return;
     }
   };
@@ -568,67 +804,71 @@ const ForgotPasswordPage = () => {
 
   const getStepTitle = () => {
     switch (step) {
-      case 'request':
+      case "request":
         return isPT
-          ? 'Recuperar palavra-passe'
-          : 'Reset your password';
+          ? "Recuperar palavra-passe"
+          : "Reset your password";
 
-      case 'pending':
+      case "pending":
         return isPT
-          ? 'Pedido enviado'
-          : 'Request submitted';
+          ? "Pedido enviado"
+          : "Request submitted";
 
-      case 'code':
+      case "code":
         return isPT
-          ? 'Código de recuperação'
-          : 'Recovery code';
+          ? "Código de recuperação"
+          : "Recovery code";
 
-      case 'password':
+      case "password":
         return isPT
-          ? 'Nova palavra-passe'
-          : 'New password';
+          ? "Nova palavra-passe"
+          : "New password";
 
-      case 'success':
+      case "success":
         return isPT
-          ? 'Palavra-passe alterada'
-          : 'Password changed';
+          ? "Palavra-passe alterada"
+          : "Password changed";
 
       default:
-        return '';
+        return "";
     }
   };
 
   const getStepDescription = () => {
     switch (step) {
-      case 'request':
+      case "request":
         return isPT
-          ? 'Solicite um código de recuperação ao administrador do sistema.'
-          : 'Request a recovery code from the system administrator.';
+          ? "Solicite um código de recuperação ao administrador do sistema."
+          : "Request a recovery code from the system administrator.";
 
-      case 'pending':
+      case "pending":
         return isPT
-          ? 'O administrador foi notificado e irá analisar o seu pedido.'
-          : 'The administrator has been notified and will review your request.';
+          ? "O administrador foi notificado e irá analisar o seu pedido."
+          : "The administrator has been notified and will review your request.";
 
-      case 'code':
+      case "code":
         return isPT
-          ? 'Introduza o código de 6 dígitos fornecido pelo administrador.'
-          : 'Enter the 6-digit code provided by the administrator.';
+          ? "Introduza o código de 6 dígitos fornecido pelo administrador."
+          : "Enter the 6-digit code provided by the administrator.";
 
-      case 'password':
+      case "password":
         return isPT
-          ? 'Defina uma nova palavra-passe para a sua conta.'
-          : 'Set a new password for your account.';
+          ? "Defina uma nova palavra-passe para a sua conta."
+          : "Set a new password for your account.";
 
-      case 'success':
+      case "success":
         return isPT
-          ? 'A sua palavra-passe foi alterada com sucesso.'
-          : 'Your password has been successfully changed.';
+          ? "A sua palavra-passe foi alterada com sucesso."
+          : "Your password has been successfully changed.";
 
       default:
-        return '';
+        return "";
     }
   };
+
+  /* =========================================================
+     BACKGROUND
+  ========================================================= */
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#050A17] text-white">
@@ -713,7 +953,7 @@ const ForgotPasswordPage = () => {
             w-[1050px]
             rounded-[50%]
             border
-            border-blue-500/[0.10]
+            border-blue-500/[0.08]
           "
         />
 
@@ -722,137 +962,65 @@ const ForgotPasswordPage = () => {
             absolute
             inset-0
             opacity-[0.025]
-            [background-image:linear-gradient(rgba(255,255,255,0.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.35)_1px,transparent_1px)]
-            [background-size:48px_48px]
           "
+          style={{
+            backgroundImage:
+              "linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)",
+            backgroundSize:
+              "40px 40px",
+          }}
         />
 
       </div>
-
-
-      {/* =====================================================
-          LEFT SIDE
-      ===================================================== */}
-
-      <div
-        className="
-          pointer-events-none
-          absolute
-          left-8
-          top-1/2
-          hidden
-          -translate-y-1/2
-          xl:block
-        "
-      >
-
-        <div className="mb-5 h-px w-12 bg-blue-400/70" />
-
-        <div className="space-y-3 text-[10px] font-medium tracking-[0.28em] text-blue-300/55">
-          <div>PEOPLE</div>
-          <div>EQUIPMENT</div>
-          <div>SUPPORT</div>
-          <div>ALWAYS CONNECTED</div>
-        </div>
-
-      </div>
-
-
-      {/* =====================================================
-          LOCATION
-      ===================================================== */}
-
-      <div
-        className="
-          pointer-events-none
-          absolute
-          bottom-12
-          left-8
-          hidden
-          xl:block
-        "
-      >
-
-        <div className="space-y-1 text-[10px] tracking-[0.28em] text-blue-300/45">
-          <div>GUIMARÃES</div>
-          <div>PORTUGAL</div>
-        </div>
-
-        <div className="mt-4 h-px w-8 bg-blue-400/70" />
-
-      </div>
-
-
-      {/* =====================================================
-          RIGHT SIDE
-      ===================================================== */}
-
-      <div
-        className="
-          pointer-events-none
-          absolute
-          right-8
-          top-1/2
-          hidden
-          -translate-y-1/2
-          xl:block
-        "
-      >
-
-        <div className="mb-5 h-px w-8 bg-blue-400/70" />
-
-        <div className="max-w-[130px] space-y-2 text-[10px] font-medium leading-6 tracking-[0.28em] text-blue-300/45">
-          <div>TECHNOLOGY</div>
-          <div>FOR A BETTER</div>
-          <div>TOMORROW</div>
-        </div>
-
-      </div>
-
-
-      {/* =====================================================
-          DOMAIN
-      ===================================================== */}
-
-      <div
-        className="
-          pointer-events-none
-          absolute
-          bottom-12
-          right-8
-          hidden
-          xl:block
-          text-[10px]
-          tracking-[0.28em]
-          text-blue-300/45
-        "
-      >
-
-        NEXHOP.PT
-
-        <div className="mt-4 ml-auto h-px w-8 bg-blue-400/70" />
-
-      </div>
-
 
       {/* =====================================================
           MAIN
       ===================================================== */}
 
-      <main
-        className="
-          relative
-          z-10
-          flex
-          min-h-screen
-          items-center
-          justify-center
-          px-5
-          py-8
-        "
-      >
+      <main className="relative z-10 flex min-h-screen items-center justify-center px-4 py-10">
 
-        <section className="w-full max-w-[620px]">
+        <section className="w-full max-w-[470px]">
+
+          {/* =================================================
+              LOGO
+          ================================================= */}
+
+          <div className="mb-7 flex flex-col items-center">
+
+            <div
+              className="
+                mb-4
+                flex
+                h-16
+                w-16
+                items-center
+                justify-center
+                rounded-2xl
+                border
+                border-blue-400/20
+                bg-[#081120]
+                shadow-[0_0_40px_rgba(37,99,235,0.12)]
+              "
+            >
+              <KeyRound
+                size={28}
+                className="text-blue-400"
+              />
+            </div>
+
+            <div className="text-center">
+
+              <div className="text-[11px] font-semibold tracking-[0.22em] text-blue-300/70">
+                NEXHOP
+              </div>
+
+              <div className="mt-1 text-[10px] tracking-[0.18em] text-blue-200/35">
+                IT INVENTORY
+              </div>
+
+            </div>
+
+          </div>
 
           {/* =================================================
               CARD
@@ -860,193 +1028,95 @@ const ForgotPasswordPage = () => {
 
           <div
             className="
-              relative
-              overflow-hidden
-              rounded-[24px]
+              rounded-3xl
               border
-              border-blue-400/30
-              bg-[#091120]/90
-              p-7
-              shadow-[0_0_80px_rgba(37,99,235,0.10)]
+              border-blue-300/[0.10]
+              bg-[#07101F]/90
+              p-6
+              shadow-[0_20px_80px_rgba(0,0,0,0.35)]
               backdrop-blur-xl
-              sm:p-10
+              sm:p-8
             "
           >
-
-            <div
-              className="
-                pointer-events-none
-                absolute
-                left-1/2
-                top-0
-                h-[2px]
-                w-[55%]
-                -translate-x-1/2
-                bg-blue-400
-                shadow-[0_0_25px_rgba(59,130,246,0.9)]
-              "
-            />
-
-            <div
-              className="
-                pointer-events-none
-                absolute
-                left-1/2
-                top-[-100px]
-                h-[220px]
-                w-[220px]
-                -translate-x-1/2
-                rounded-full
-                bg-blue-500/[0.08]
-                blur-[70px]
-              "
-            />
-
-
-            {/* =================================================
-                LOGO
-            ================================================= */}
-
-            <div
-              className="
-                relative
-                mb-7
-                flex
-                flex-col
-                items-center
-              "
-            >
-
-              <div
-                className="
-                  relative
-                  mb-3
-                  flex
-                  h-[60px]
-                  w-[60px]
-                  items-center
-                  justify-center
-                "
-              >
-
-                <div
-                  className="
-                    absolute
-                    inset-0
-                    rounded-2xl
-                    bg-blue-500/[0.10]
-                    blur-xl
-                  "
-                />
-
-                <div
-                  className="
-                    relative
-                    flex
-                    h-[56px]
-                    w-[56px]
-                    items-center
-                    justify-center
-                    rounded-2xl
-                    border
-                    border-blue-400/20
-                    bg-[#0B1629]
-                    shadow-[0_0_30px_rgba(37,99,235,0.12)]
-                  "
-                >
-
-                  <span
-                    className="
-                      bg-gradient-to-br
-                      from-sky-300
-                      via-blue-500
-                      to-blue-700
-                      bg-clip-text
-                      text-[38px]
-                      font-black
-                      leading-none
-                      tracking-[-0.12em]
-                      text-transparent
-                    "
-                  >
-                    N
-                  </span>
-
-                </div>
-
-              </div>
-
-              <div
-                className="
-                  text-[27px]
-                  font-bold
-                  tracking-[-0.04em]
-                  text-white
-                "
-              >
-                NexHop
-              </div>
-
-              <div
-                className="
-                  mt-1
-                  text-[10px]
-                  font-medium
-                  tracking-[0.30em]
-                  text-blue-300/70
-                "
-              >
-                IT INVENTORY
-              </div>
-
-            </div>
-
 
             {/* =================================================
                 TITLE
             ================================================= */}
 
-            <div className="relative mb-7 text-center">
+            <div className="text-center">
 
-              <h1
-                className="
-                  text-[27px]
-                  font-semibold
-                  tracking-[-0.025em]
-                  text-white
-                  sm:text-[29px]
-                "
-              >
+              <h1 className="text-[25px] font-semibold tracking-tight">
                 {getStepTitle()}
               </h1>
 
-              <p
-                className="
-                  mx-auto
-                  mt-2
-                  max-w-[400px]
-                  text-sm
-                  leading-6
-                  text-blue-200/60
-                "
-              >
+              <p className="mx-auto mt-2 max-w-[390px] text-sm leading-6 text-blue-100/45">
                 {getStepDescription()}
               </p>
 
             </div>
 
+            {/* =================================================
+                PROGRESS
+            ================================================= */}
+
+            {step !== "success" && (
+              <div className="mt-7 flex items-center justify-center gap-2">
+
+                {[
+                  "request",
+                  "pending",
+                  "code",
+                  "password",
+                ].map(
+                  (
+                    item,
+                    index
+                  ) => {
+                    const currentIndex =
+                      [
+                        "request",
+                        "pending",
+                        "code",
+                        "password",
+                      ].indexOf(step);
+
+                    const active =
+                      index <=
+                      currentIndex;
+
+                    return (
+                      <div
+                        key={item}
+                        className={`
+                          h-1.5
+                          rounded-full
+                          transition-all
+                          duration-300
+                          ${
+                            active
+                              ? "w-10 bg-blue-500"
+                              : "w-5 bg-white/[0.08]"
+                          }
+                        `}
+                      />
+                    );
+                  }
+                )}
+
+              </div>
+            )}
 
             {/* =================================================
                 REQUEST
             ================================================= */}
 
-            {step === 'request' && (
+            {step === "request" && (
               <form
                 onSubmit={
                   handleRequestRecovery
                 }
                 noValidate
-                className="relative space-y-5"
+                className="mt-7 space-y-5"
               >
 
                 <div>
@@ -1058,46 +1128,42 @@ const ForgotPasswordPage = () => {
                       block
                       text-xs
                       font-medium
-                      text-white/80
+                      text-white/75
                     "
                   >
                     {isPT
-                      ? 'Email profissional'
-                      : 'Professional email'}
+                      ? "Email profissional"
+                      : "Professional email"}
                   </label>
 
                   <div className="relative">
 
                     <Mail
-                      size={18}
+                      size={17}
                       className="
                         pointer-events-none
                         absolute
                         left-4
                         top-1/2
                         -translate-y-1/2
-                        text-blue-200/65
+                        text-blue-200/45
                       "
                     />
 
                     <input
                       id="email"
-                      type="text"
-                      inputMode="email"
+                      type="email"
                       value={email}
                       onChange={(e) =>
                         handleEmailChange(
                           e.target.value
                         )
                       }
+                      autoComplete="email"
                       placeholder={
                         isPT
-                          ? 'nome@empresa.pt'
-                          : 'name@company.com'
-                      }
-                      autoComplete="email"
-                      aria-invalid={
-                        !!emailError
+                          ? "nome@empresa.pt"
+                          : "name@company.com"
                       }
                       className={`
                         h-14
@@ -1111,14 +1177,13 @@ const ForgotPasswordPage = () => {
                         text-white
                         outline-none
                         transition
-                        placeholder:text-blue-100/30
-                        hover:border-blue-300/30
+                        placeholder:text-blue-100/25
                         focus:ring-2
                         focus:ring-blue-500/10
                         ${
                           emailError
-                            ? 'border-red-500/60 focus:border-red-500/70'
-                            : 'border-blue-300/20 focus:border-blue-400/60'
+                            ? "border-red-500/60"
+                            : "border-blue-300/20 focus:border-blue-400/60"
                         }
                       `}
                     />
@@ -1133,10 +1198,36 @@ const ForgotPasswordPage = () => {
 
                 </div>
 
+                <div
+                  className="
+                    rounded-xl
+                    border
+                    border-blue-400/10
+                    bg-blue-500/[0.035]
+                    p-4
+                  "
+                >
+                  <div className="flex items-start gap-3">
+
+                    <ShieldCheck
+                      size={17}
+                      className="mt-0.5 shrink-0 text-blue-400"
+                    />
+
+                    <p className="text-xs leading-5 text-blue-100/45">
+                      {isPT
+                        ? "Será criado um pedido para o administrador. Após a aprovação, receberá um código de 6 dígitos."
+                        : "A request will be created for the administrator. After approval, you will receive a 6-digit code."}
+                    </p>
+
+                  </div>
+                </div>
 
                 <button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={
+                    isSubmitting
+                  }
                   className="
                     group
                     flex
@@ -1155,215 +1246,132 @@ const ForgotPasswordPage = () => {
                     text-white
                     shadow-[0_0_30px_rgba(37,99,235,0.18)]
                     transition
-                    duration-200
                     hover:from-blue-400
                     hover:via-blue-500
                     hover:to-blue-400
-                    hover:shadow-[0_0_40px_rgba(37,99,235,0.28)]
                     disabled:cursor-not-allowed
-                    disabled:opacity-60
+                    disabled:opacity-50
                   "
                 >
+                  {isSubmitting ? (
+                    isPT
+                      ? "A enviar..."
+                      : "Sending..."
+                  ) : (
+                    <>
+                      {isPT
+                        ? "Pedir recuperação"
+                        : "Request recovery"}
 
-                  {isSubmitting
-                    ? isPT
-                      ? 'A enviar pedido...'
-                      : 'Submitting request...'
-                    : (
-                      <>
-                        {isPT
-                          ? 'Solicitar código'
-                          : 'Request recovery code'}
-
-                        <ArrowRight
-                          size={17}
-                          className="transition-transform group-hover:translate-x-1"
-                        />
-                      </>
-                    )}
-
+                      <ArrowRight
+                        size={17}
+                        className="transition-transform group-hover:translate-x-1"
+                      />
+                    </>
+                  )}
                 </button>
 
               </form>
             )}
 
-
             {/* =================================================
                 PENDING
             ================================================= */}
 
-            {step === 'pending' && (
-              <div className="relative">
+            {step === "pending" && (
+              <div className="mt-8 text-center">
 
-                <div className="flex flex-col items-center">
+                <div
+                  className="
+                    mx-auto
+                    flex
+                    h-20
+                    w-20
+                    items-center
+                    justify-center
+                    rounded-2xl
+                    border
+                    border-blue-400/20
+                    bg-[#0B1629]
+                    shadow-[0_0_40px_rgba(37,99,235,0.10)]
+                  "
+                >
+                  <ShieldCheck
+                    size={34}
+                    className="text-blue-400"
+                  />
+                </div>
 
-                  <div
-                    className="
-                      relative
-                      mb-6
-                      flex
-                      h-[68px]
-                      w-[68px]
-                      items-center
-                      justify-center
-                    "
-                  >
-
-                    <div
-                      className="
-                        absolute
-                        inset-0
-                        rounded-2xl
-                        bg-blue-500/[0.10]
-                        blur-xl
-                      "
-                    />
-
-                    <div
-                      className="
-                        relative
-                        flex
-                        h-[62px]
-                        w-[62px]
-                        items-center
-                        justify-center
-                        rounded-2xl
-                        border
-                        border-blue-400/20
-                        bg-[#0B1629]
-                      "
-                    >
-                      <ShieldCheck
-                        size={29}
-                        className="text-blue-400"
-                      />
-                    </div>
-
-                  </div>
-
-
-                  <p className="text-sm text-blue-200/50">
+                <div
+                  className="
+                    mt-6
+                    rounded-xl
+                    border
+                    border-blue-400/10
+                    bg-blue-500/[0.035]
+                    p-4
+                    text-left
+                  "
+                >
+                  <p className="text-xs leading-5 text-blue-100/55">
                     {isPT
-                      ? 'Pedido associado à conta'
-                      : 'Request associated with'}
+                      ? "O seu pedido foi registado. O administrador recebeu uma notificação e precisa de aprovar o pedido antes de ser gerado o código."
+                      : "Your request has been registered. The administrator has been notified and must approve the request before a code is generated."}
                   </p>
+                </div>
 
-                  <p className="mt-1 break-all text-sm font-medium text-white/85">
-                    {email}
-                  </p>
+                <div className="mt-5 flex items-center justify-center gap-2 text-[11px] text-blue-200/40">
 
+                  <Mail
+                    size={14}
+                    className="text-blue-400"
+                  />
 
-                  <div
-                    className="
-                      mt-6
-                      w-full
-                      rounded-xl
-                      border
-                      border-blue-300/[0.08]
-                      bg-[#081120]
-                      p-5
-                      text-center
-                    "
-                  >
-
-                    <div className="flex items-center justify-center gap-2">
-
-                      <LockKeyhole
-                        size={16}
-                        className="text-blue-400"
-                      />
-
-                      <span className="text-xs font-medium text-blue-100/70">
-                        {isPT
-                          ? 'A aguardar aprovação'
-                          : 'Waiting for approval'}
-                      </span>
-
-                    </div>
-
-                    <p className="mx-auto mt-3 max-w-[390px] text-xs leading-5 text-blue-100/40">
-                      {isPT
-                        ? 'O administrador do sistema recebeu o pedido. Depois de aprovado, será disponibilizado um código de recuperação de 6 dígitos.'
-                        : 'The system administrator has received your request. Once approved, a 6-digit recovery code will be available.'}
-                    </p>
-
-                  </div>
-
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setStep('code')
-                    }
-                    className="
-                      mt-5
-                      inline-flex
-                      h-12
-                      items-center
-                      justify-center
-                      gap-2
-                      rounded-xl
-                      border
-                      border-blue-400/20
-                      bg-blue-500/[0.06]
-                      px-6
-                      text-sm
-                      font-medium
-                      text-blue-300
-                      transition
-                      hover:border-blue-400/40
-                      hover:bg-blue-500/[0.10]
-                    "
-                  >
-
-                    <KeyRound size={16} />
-
-                    {isPT
-                      ? 'Já tenho o código'
-                      : 'I already have the code'}
-
-                    <ArrowRight size={15} />
-
-                  </button>
+                  {email}
 
                 </div>
 
+                <button
+                  type="button"
+                  onClick={() =>
+                    setStep("request")
+                  }
+                  className="
+                    mt-7
+                    inline-flex
+                    items-center
+                    gap-2
+                    text-xs
+                    font-medium
+                    text-blue-400
+                    transition
+                    hover:text-blue-300
+                  "
+                >
+                  <ArrowLeft
+                    size={14}
+                  />
+
+                  {isPT
+                    ? "Voltar"
+                    : "Back"}
+                </button>
+
               </div>
             )}
-
 
             {/* =================================================
                 CODE
             ================================================= */}
 
-            {step === 'code' && (
+            {step === "code" && (
               <form
-                onSubmit={handleValidateCode}
+                onSubmit={
+                  handleValidateCode
+                }
                 noValidate
-                className="relative"
+                className="mt-8"
               >
-
-                <div className="mb-6 flex items-center justify-center">
-
-                  <div
-                    className="
-                      flex
-                      h-16
-                      w-16
-                      items-center
-                      justify-center
-                      rounded-2xl
-                      border
-                      border-blue-400/20
-                      bg-[#0B1629]
-                      text-blue-400
-                    "
-                  >
-                    <KeyRound size={27} />
-                  </div>
-
-                </div>
-
 
                 <div>
 
@@ -1378,15 +1386,19 @@ const ForgotPasswordPage = () => {
                     "
                   >
                     {isPT
-                      ? 'Código de recuperação'
-                      : 'Recovery code'}
+                      ? "Código de recuperação"
+                      : "Recovery code"}
                   </label>
 
+                  {/* 6 CAIXAS */}
 
                   <div className="flex justify-center gap-2 sm:gap-3">
 
                     {code.map(
-                      (digit, index) => (
+                      (
+                        digit,
+                        index
+                      ) => (
                         <input
                           key={index}
                           id={`recovery-code-${index}`}
@@ -1394,8 +1406,8 @@ const ForgotPasswordPage = () => {
                           inputMode="numeric"
                           autoComplete={
                             index === 0
-                              ? 'one-time-code'
-                              : 'off'
+                              ? "one-time-code"
+                              : "off"
                           }
                           maxLength={1}
                           value={digit}
@@ -1431,21 +1443,15 @@ const ForgotPasswordPage = () => {
                             sm:text-2xl
                             ${
                               codeError
-                                ? 'border-red-500/60'
-                                : digit
-                                  ? 'border-blue-400/50 shadow-[0_0_15px_rgba(59,130,246,0.10)]'
-                                  : 'border-blue-300/20'
+                                ? "border-red-500/60"
+                                : "border-blue-300/20 focus:border-blue-400/60"
                             }
-                            focus:border-blue-400
-                            focus:ring-2
-                            focus:ring-blue-500/10
                           `}
                         />
                       )
                     )}
 
                   </div>
-
 
                   {codeError && (
                     <p className="mt-3 text-center text-xs font-medium text-red-400">
@@ -1455,6 +1461,7 @@ const ForgotPasswordPage = () => {
 
                 </div>
 
+                {/* VALIDITY */}
 
                 <div className="mt-5 flex items-center justify-center gap-2 text-[11px] text-blue-200/40">
 
@@ -1464,17 +1471,19 @@ const ForgotPasswordPage = () => {
                   />
 
                   {isPT
-                    ? 'Código válido durante 15 minutos'
-                    : 'Code valid for 15 minutes'}
+                    ? "Código válido durante 5 minutos"
+                    : "Code valid for 5 minutes"}
 
                 </div>
 
+                {/* VALIDATE */}
 
                 <button
                   type="submit"
                   disabled={
                     isValidatingCode ||
-                    code.join('').length !== 6
+                    code.join("")
+                      .length !== 6
                   }
                   className="
                     group
@@ -1502,16 +1511,15 @@ const ForgotPasswordPage = () => {
                     disabled:opacity-50
                   "
                 >
-
                   {isValidatingCode ? (
                     isPT
-                      ? 'A validar...'
-                      : 'Validating...'
+                      ? "A validar..."
+                      : "Validating..."
                   ) : (
                     <>
                       {isPT
-                        ? 'Validar código'
-                        : 'Validate code'}
+                        ? "Validar código"
+                        : "Validate code"}
 
                       <ArrowRight
                         size={17}
@@ -1519,25 +1527,52 @@ const ForgotPasswordPage = () => {
                       />
                     </>
                   )}
+                </button>
 
+                <button
+                  type="button"
+                  onClick={
+                    handleBack
+                  }
+                  className="
+                    mx-auto
+                    mt-5
+                    flex
+                    items-center
+                    gap-2
+                    text-xs
+                    font-medium
+                    text-blue-400
+                    transition
+                    hover:text-blue-300
+                  "
+                >
+                  <ArrowLeft
+                    size={14}
+                  />
+
+                  {isPT
+                    ? "Voltar"
+                    : "Back"}
                 </button>
 
               </form>
             )}
 
-
             {/* =================================================
                 NEW PASSWORD
             ================================================= */}
 
-            {step === 'password' && (
+            {step === "password" && (
               <form
                 onSubmit={
                   handleChangePassword
                 }
                 noValidate
-                className="space-y-5"
+                className="mt-8 space-y-5"
               >
+
+                {/* PASSWORD */}
 
                 <div>
 
@@ -1548,12 +1583,12 @@ const ForgotPasswordPage = () => {
                       block
                       text-xs
                       font-medium
-                      text-white/80
+                      text-white/75
                     "
                   >
                     {isPT
-                      ? 'Nova palavra-passe'
-                      : 'New password'}
+                      ? "Nova palavra-passe"
+                      : "New password"}
                   </label>
 
                   <div className="relative">
@@ -1574,10 +1609,12 @@ const ForgotPasswordPage = () => {
                       id="password"
                       type={
                         showPassword
-                          ? 'text'
-                          : 'password'
+                          ? "text"
+                          : "password"
                       }
-                      value={password}
+                      value={
+                        password
+                      }
                       onChange={(e) =>
                         handlePasswordChange(
                           e.target.value
@@ -1586,8 +1623,8 @@ const ForgotPasswordPage = () => {
                       autoComplete="new-password"
                       placeholder={
                         isPT
-                          ? 'Introduza a nova palavra-passe'
-                          : 'Enter your new password'
+                          ? "Introduza a nova palavra-passe"
+                          : "Enter your new password"
                       }
                       className={`
                         h-14
@@ -1606,8 +1643,8 @@ const ForgotPasswordPage = () => {
                         focus:ring-blue-500/10
                         ${
                           passwordError
-                            ? 'border-red-500/60'
-                            : 'border-blue-300/20 focus:border-blue-400/60'
+                            ? "border-red-500/60"
+                            : "border-blue-300/20 focus:border-blue-400/60"
                         }
                       `}
                     />
@@ -1630,9 +1667,13 @@ const ForgotPasswordPage = () => {
                       "
                     >
                       {showPassword ? (
-                        <EyeOff size={17} />
+                        <EyeOff
+                          size={17}
+                        />
                       ) : (
-                        <Eye size={17} />
+                        <Eye
+                          size={17}
+                        />
                       )}
                     </button>
 
@@ -1646,6 +1687,7 @@ const ForgotPasswordPage = () => {
 
                 </div>
 
+                {/* CONFIRM PASSWORD */}
 
                 <div>
 
@@ -1656,12 +1698,12 @@ const ForgotPasswordPage = () => {
                       block
                       text-xs
                       font-medium
-                      text-white/80
+                      text-white/75
                     "
                   >
                     {isPT
-                      ? 'Confirmar palavra-passe'
-                      : 'Confirm password'}
+                      ? "Confirmar palavra-passe"
+                      : "Confirm password"}
                   </label>
 
                   <div className="relative">
@@ -1682,10 +1724,12 @@ const ForgotPasswordPage = () => {
                       id="confirm-password"
                       type={
                         showConfirmPassword
-                          ? 'text'
-                          : 'password'
+                          ? "text"
+                          : "password"
                       }
-                      value={confirmPassword}
+                      value={
+                        confirmPassword
+                      }
                       onChange={(e) =>
                         handleConfirmPasswordChange(
                           e.target.value
@@ -1694,8 +1738,8 @@ const ForgotPasswordPage = () => {
                       autoComplete="new-password"
                       placeholder={
                         isPT
-                          ? 'Repita a nova palavra-passe'
-                          : 'Repeat your new password'
+                          ? "Repita a nova palavra-passe"
+                          : "Repeat your new password"
                       }
                       className={`
                         h-14
@@ -1714,8 +1758,8 @@ const ForgotPasswordPage = () => {
                         focus:ring-blue-500/10
                         ${
                           confirmPasswordError
-                            ? 'border-red-500/60'
-                            : 'border-blue-300/20 focus:border-blue-400/60'
+                            ? "border-red-500/60"
+                            : "border-blue-300/20 focus:border-blue-400/60"
                         }
                       `}
                     />
@@ -1738,9 +1782,13 @@ const ForgotPasswordPage = () => {
                       "
                     >
                       {showConfirmPassword ? (
-                        <EyeOff size={17} />
+                        <EyeOff
+                          size={17}
+                        />
                       ) : (
-                        <Eye size={17} />
+                        <Eye
+                          size={17}
+                        />
                       )}
                     </button>
 
@@ -1754,38 +1802,50 @@ const ForgotPasswordPage = () => {
 
                 </div>
 
+                {/* INFO */}
 
                 <div
                   className="
                     rounded-xl
                     border
-                    border-blue-300/[0.08]
-                    bg-[#081120]
+                    border-blue-400/10
+                    bg-blue-500/[0.035]
                     p-4
                   "
                 >
-
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-start gap-3">
 
                     <ShieldCheck
-                      size={15}
-                      className="text-blue-400"
+                      size={17}
+                      className="mt-0.5 shrink-0 text-blue-400"
                     />
 
-                    <span className="text-[11px] font-medium text-blue-100/60">
-                      {isPT
-                        ? 'Mínimo de 8 caracteres'
-                        : 'Minimum 8 characters'}
-                    </span>
+                    <div>
+
+                      <p className="text-xs font-medium text-blue-100/65">
+                        {isPT
+                          ? "Requisitos"
+                          : "Requirements"}
+                      </p>
+
+                      <p className="mt-1 text-[11px] leading-5 text-blue-100/40">
+                        {isPT
+                          ? "A palavra-passe deve ter pelo menos 8 caracteres."
+                          : "The password must contain at least 8 characters."}
+                      </p>
+
+                    </div>
 
                   </div>
-
                 </div>
 
+                {/* SUBMIT */}
 
                 <button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={
+                    isSubmitting
+                  }
                   className="
                     group
                     flex
@@ -1811,98 +1871,96 @@ const ForgotPasswordPage = () => {
                     disabled:opacity-50
                   "
                 >
+                  {isSubmitting ? (
+                    isPT
+                      ? "A alterar..."
+                      : "Changing..."
+                  ) : (
+                    <>
+                      {isPT
+                        ? "Alterar palavra-passe"
+                        : "Change password"}
 
-                  {isSubmitting
-                    ? isPT
-                      ? 'A alterar...'
-                      : 'Changing...'
-                    : (
-                      <>
-                        {isPT
-                          ? 'Alterar palavra-passe'
-                          : 'Change password'}
+                      <ArrowRight
+                        size={17}
+                        className="transition-transform group-hover:translate-x-1"
+                      />
+                    </>
+                  )}
+                </button>
 
-                        <ArrowRight
-                          size={17}
-                          className="transition-transform group-hover:translate-x-1"
-                        />
-                      </>
-                    )}
+                <button
+                  type="button"
+                  onClick={
+                    handleBack
+                  }
+                  disabled={
+                    isSubmitting
+                  }
+                  className="
+                    mx-auto
+                    flex
+                    items-center
+                    gap-2
+                    text-xs
+                    font-medium
+                    text-blue-400
+                    transition
+                    hover:text-blue-300
+                    disabled:opacity-50
+                  "
+                >
+                  <ArrowLeft
+                    size={14}
+                  />
 
+                  {isPT
+                    ? "Voltar ao código"
+                    : "Back to code"}
                 </button>
 
               </form>
             )}
 
-
             {/* =================================================
                 SUCCESS
             ================================================= */}
 
-            {step === 'success' && (
-              <div className="relative text-center">
+            {step === "success" && (
+              <div className="mt-8 text-center">
 
                 <div
                   className="
-                    relative
                     mx-auto
-                    mb-6
                     flex
-                    h-[70px]
-                    w-[70px]
+                    h-20
+                    w-20
                     items-center
                     justify-center
+                    rounded-2xl
+                    border
+                    border-emerald-400/20
+                    bg-[#0B1629]
+                    shadow-[0_0_40px_rgba(16,185,129,0.08)]
                   "
                 >
-
-                  <div
-                    className="
-                      absolute
-                      inset-0
-                      rounded-2xl
-                      bg-emerald-500/[0.10]
-                      blur-xl
-                    "
+                  <CheckCircle2
+                    size={34}
+                    className="text-emerald-400"
                   />
-
-                  <div
-                    className="
-                      relative
-                      flex
-                      h-[64px]
-                      w-[64px]
-                      items-center
-                      justify-center
-                      rounded-2xl
-                      border
-                      border-emerald-400/20
-                      bg-[#0B1629]
-                    "
-                  >
-
-                    <CheckCircle2
-                      size={30}
-                      className="text-emerald-400"
-                    />
-
-                  </div>
-
                 </div>
 
-
-                <h2 className="text-[25px] font-semibold tracking-tight">
+                <h2 className="mt-6 text-[25px] font-semibold tracking-tight">
                   {isPT
-                    ? 'Palavra-passe alterada'
-                    : 'Password changed'}
+                    ? "Palavra-passe alterada"
+                    : "Password changed"}
                 </h2>
-
 
                 <p className="mx-auto mt-3 max-w-[380px] text-sm leading-6 text-blue-200/55">
                   {isPT
-                    ? 'A sua palavra-passe foi alterada com sucesso. Já pode iniciar sessão novamente.'
-                    : 'Your password has been changed successfully. You can now sign in again.'}
+                    ? "A sua palavra-passe foi alterada com sucesso. Já pode iniciar sessão novamente."
+                    : "Your password has been changed successfully. You can now sign in again."}
                 </p>
-
 
                 <Link
                   to="/login"
@@ -1930,21 +1988,18 @@ const ForgotPasswordPage = () => {
                     hover:to-blue-400
                   "
                 >
-
                   {isPT
-                    ? 'Voltar ao login'
-                    : 'Back to login'}
+                    ? "Voltar ao login"
+                    : "Back to login"}
 
                   <ArrowRight
                     size={17}
                     className="transition-transform group-hover:translate-x-1"
                   />
-
                 </Link>
 
               </div>
             )}
-
 
             {/* =================================================
                 FOOTER
@@ -1958,14 +2013,13 @@ const ForgotPasswordPage = () => {
 
                 <span className="text-[10px] text-blue-200/45">
                   {isPT
-                    ? 'Sistema interno'
-                    : 'Internal system'}
+                    ? "Sistema interno"
+                    : "Internal system"}
                 </span>
 
                 <div className="h-px flex-1 bg-white/[0.07]" />
 
               </div>
-
 
               <div className="mt-5 text-center text-[11px] text-blue-200/45">
                 Secure · Manage · Work Better
@@ -1975,43 +2029,11 @@ const ForgotPasswordPage = () => {
 
           </div>
 
-
           {/* =================================================
-              NAVIGATION
+              BACK TO LOGIN
           ================================================= */}
 
-          {step !== 'success' &&
-            step !== 'request' && (
-              <div className="mt-5 text-center">
-
-                <button
-                  type="button"
-                  onClick={handleBack}
-                  className="
-                    inline-flex
-                    items-center
-                    gap-2
-                    text-xs
-                    font-medium
-                    text-blue-400
-                    transition
-                    hover:text-blue-300
-                  "
-                >
-
-                  <ArrowLeft size={14} />
-
-                  {isPT
-                    ? 'Voltar'
-                    : 'Back'}
-
-                </button>
-
-              </div>
-            )}
-
-
-          {step === 'request' && (
+          {step === "request" && (
             <div className="mt-6 text-center">
 
               <Link
@@ -2027,20 +2049,19 @@ const ForgotPasswordPage = () => {
                   hover:text-blue-300
                 "
               >
-
-                <ArrowLeft size={14} />
+                <ArrowLeft
+                  size={14}
+                />
 
                 {isPT
-                  ? 'Voltar ao login'
-                  : 'Back to login'}
-
+                  ? "Voltar ao login"
+                  : "Back to login"}
               </Link>
 
             </div>
           )}
 
-
-          {step === 'pending' && (
+          {step === "pending" && (
             <div className="mt-6 text-center">
 
               <Link
@@ -2056,18 +2077,21 @@ const ForgotPasswordPage = () => {
                   hover:text-blue-300
                 "
               >
-
-                <ArrowLeft size={14} />
+                <ArrowLeft
+                  size={14}
+                />
 
                 {isPT
-                  ? 'Voltar ao login'
-                  : 'Back to login'}
-
+                  ? "Voltar ao login"
+                  : "Back to login"}
               </Link>
 
             </div>
           )}
 
+          {/* =================================================
+              COPYRIGHT
+          ================================================= */}
 
           <div
             className="
@@ -2078,10 +2102,10 @@ const ForgotPasswordPage = () => {
               text-blue-200/30
             "
           >
-            © 2026 NexHop.{' '}
+            © 2026 NexHop.{" "}
             {isPT
-              ? 'Todos os direitos reservados.'
-              : 'All rights reserved.'}
+              ? "Todos os direitos reservados."
+              : "All rights reserved."}
           </div>
 
         </section>

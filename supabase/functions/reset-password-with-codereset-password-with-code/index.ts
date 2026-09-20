@@ -15,9 +15,11 @@ type ResetRequest = {
   password?: string;
 };
 
-type ConsumeResult = {
+type ValidationResult = {
+  valid: boolean;
   user_id: string;
   request_id: string;
+  expires_at: string;
 };
 
 Deno.serve(async (req: Request) => {
@@ -134,11 +136,6 @@ Deno.serve(async (req: Request) => {
         "SUPABASE_SERVICE_ROLE_KEY",
       ) ?? "";
 
-    /*
-     * Support for the newer Supabase secret-key
-     * environment variable if it exists.
-     */
-
     const secretKeys =
       Deno.env.get(
         "SUPABASE_SECRET_KEYS",
@@ -195,10 +192,6 @@ Deno.serve(async (req: Request) => {
 
     /* =======================================================
        VALIDATE RECOVERY CODE
-       
-       IMPORTANT:
-       Do NOT mark the code as used yet.
-       First validate it, then change the password.
     ======================================================= */
 
     const {
@@ -236,14 +229,17 @@ Deno.serve(async (req: Request) => {
     }
 
     const validationResult =
-      Array.isArray(validationData)
+      (Array.isArray(validationData)
         ? validationData[0]
-        : validationData;
+        : validationData) as
+        | ValidationResult
+        | null;
 
     if (
       !validationResult ||
       !validationResult.valid ||
-      !validationResult.user_id
+      !validationResult.user_id ||
+      !validationResult.request_id
     ) {
       return new Response(
         JSON.stringify({
@@ -263,6 +259,9 @@ Deno.serve(async (req: Request) => {
 
     const userId =
       validationResult.user_id;
+
+    const requestId =
+      validationResult.request_id;
 
     /* =======================================================
        UPDATE PASSWORD
@@ -301,42 +300,37 @@ Deno.serve(async (req: Request) => {
     }
 
     /* =======================================================
-       MARK CODE AS USED
+       MARK REQUEST AS COMPLETED
     ======================================================= */
 
     const {
-      data: consumedData,
-      error: consumeError,
+      data: completeData,
+      error: completeError,
     } =
       await (supabaseAdmin.rpc as any)(
-        "consume_password_reset_code",
+        "complete_password_reset_request",
         {
-          p_email: email,
-          p_code: code,
+          p_request_id: requestId,
         },
       );
 
-    if (consumeError) {
-      /*
-       * A password has already been changed.
-       * We log the problem but do not tell the user
-       * that the password change failed.
-       */
+    if (completeError) {
       console.error(
-        "consume_password_reset_code:",
-        consumeError,
+        "complete_password_reset_request:",
+        completeError,
       );
-    } else {
-      const consumed =
-        Array.isArray(consumedData)
-          ? consumedData[0]
-          : consumedData;
 
-      if (!consumed?.user_id) {
-        console.error(
-          "Recovery code could not be marked as used.",
-        );
-      }
+      /*
+       * A password was successfully changed.
+       * Do not report the operation as failed to the user.
+       */
+    } else if (completeData !== true) {
+      console.error(
+        "Password reset request could not be marked as completed.",
+        {
+          requestId,
+        },
+      );
     }
 
     /* =======================================================
@@ -355,10 +349,6 @@ Deno.serve(async (req: Request) => {
             "Password changed using administrator-approved recovery code.",
         });
     } catch (logError) {
-      /*
-       * Logging failure must not invalidate
-       * an already successful password change.
-       */
       console.error(
         "Activity log error:",
         logError,

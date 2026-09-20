@@ -636,7 +636,10 @@ const PasswordResetRequestsPage = () => {
         String(result.code)
       );
 
-      setCodeViewCount(0);
+      // A visualização automática do código após a aprovação conta como a 1.ª vista.
+      setCodeViewCount(
+        Number(result.view_count ?? 1)
+      );
 
       setCodeExpiresAt(
         result.expires_at
@@ -734,6 +737,15 @@ const PasswordResetRequestsPage = () => {
   const handleViewCode = async (
     request: ResetRequest
   ) => {
+    if (request.code_view_count >= 3) {
+      toast.info(
+        isPT
+          ? "O limite de 3 visualizações foi atingido. O código continua válido até expirar."
+          : "The 3-view limit has been reached. The code remains valid until it expires."
+      );
+      return;
+    }
+
     try {
       setActionLoading(true);
 
@@ -1487,7 +1499,8 @@ const PasswordResetRequestsPage = () => {
                                     )
                                   }
                                   disabled={
-                                    actionLoading
+                                    actionLoading ||
+                                    request.code_view_count >= 3
                                   }
                                   className="
                                     inline-flex
@@ -1652,6 +1665,9 @@ const PasswordResetRequestsPage = () => {
                                     request
                                   )
                                 }
+                                disabled={
+                                  request.code_view_count >= 3
+                                }
                                 className="
                                   inline-flex
                                   h-8
@@ -1667,6 +1683,8 @@ const PasswordResetRequestsPage = () => {
                                   text-blue-400
                                   transition
                                   hover:bg-blue-500/15
+                                  disabled:cursor-not-allowed
+                                  disabled:opacity-40
                                 "
                               >
                                 <Eye
@@ -2212,24 +2230,23 @@ const PasswordResetRequestsPage = () => {
                 </div>
               </div>
 
-              {codeStatus ===
-                "expired" && (
+              {codeViewCount >= 3 && (
                 <div
                   className="
                     mt-4
                     rounded-xl
                     border
-                    border-red-500/20
-                    bg-red-500/[0.06]
+                    border-blue-500/20
+                    bg-blue-500/[0.06]
                     p-3
                     text-center
                     text-xs
-                    text-red-400
+                    text-blue-300
                   "
                 >
                   {isPT
-                    ? "Esta foi a última visualização. O código está agora expirado."
-                    : "This was the final view. The code is now expired."}
+                    ? "Limite de 3 visualizações atingido. O código continua válido até expirar."
+                    : "The 3-view limit has been reached. The code remains valid until it expires."}
                 </div>
               )}
 
@@ -2268,8 +2285,8 @@ const PasswordResetRequestsPage = () => {
                 className={`mt-4 text-center text-[10px] leading-5 ${mutedText}`}
               >
                 {isPT
-                  ? "O código é válido durante 5 minutos e pode ser visualizado no máximo 3 vezes."
-                  : "The code is valid for 5 minutes and can be viewed a maximum of 3 times."}
+                  ? "O código é válido durante 5 minutos. A visualização é limitada a 3 vezes e não invalida o código."
+                  : "The code is valid for 5 minutes. Viewing is limited to 3 times and does not invalidate the code."}
               </p>
             </div>
           </div>
