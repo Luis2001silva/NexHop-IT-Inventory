@@ -212,13 +212,14 @@ export const Sidebar = ({
           path: "/dashboard",
           label: language === "pt" ? "Painel" : "Dashboard",
           icon: <LayoutDashboard size={18} />,
-          updating: true,
+          /*  updating: true,    */
         },
 
         {
           path: "/equipment",
           label: language === "pt" ? "Equipamentos" : "Equipment",
           icon: <Monitor size={18} />,
+          /*  updating: true,    */
         },
 
         ...(canViewUsers
@@ -227,6 +228,7 @@ export const Sidebar = ({
                 path: "/users",
                 label: language === "pt" ? "Utilizadores" : "Users",
                 icon: <Users size={18} />,
+                /*  updating: true,    */
               },
             ]
           : []),
@@ -253,12 +255,14 @@ export const Sidebar = ({
           path: "/warranties",
           label: language === "pt" ? "Garantias" : "Warranties",
           icon: <ShieldCheck size={18} />,
+          /*  updating: true,   */
         },
 
         {
           path: "/reservations",
           label: language === "pt" ? "Reservas" : "Reservations",
           icon: <CalendarDays size={18} />,
+          /*  updating: true,   */
         },
 
         {
@@ -274,6 +278,7 @@ export const Sidebar = ({
                 path: "/hierarchy",
                 label: language === "pt" ? "Hierarquia" : "Hierarchy",
                 icon: <Network size={18} />,
+                /*  updating: true,   */
               },
             ]
           : []),
@@ -363,6 +368,7 @@ export const Sidebar = ({
                     ? "Definições"
                     : "Settings",
                 icon: <Settings size={18} />,
+                /*  updating: true,   */
               },
             ]
           : []),
@@ -374,6 +380,7 @@ export const Sidebar = ({
               ? "Perfil"
               : "Profile",
           icon: <UserCircle size={18} />,
+          /*  updating: true,   */
         },
 
         {
@@ -383,6 +390,7 @@ export const Sidebar = ({
               ? "Suporte"
               : "Support",
           icon: <CircleHelp size={18} />,
+          /*  updating: true,   */
         },
       ],
     },
