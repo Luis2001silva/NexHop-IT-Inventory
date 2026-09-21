@@ -612,7 +612,7 @@ const AppLayout = () => {
                 }
                 className={`relative flex h-10 w-10 items-center justify-center rounded-full border transition ${
                   isLight
-                    ? "border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+                    ? "border-slate-300 bg-[#F1F3F6] text-slate-500 hover:bg-[#E8EBEF] hover:text-slate-700"
                     : "border-white/[0.07] text-white/55 hover:bg-white/[0.05] hover:text-white"
                 }`}
               >
@@ -925,7 +925,11 @@ const AppLayout = () => {
                 }`}
               >
 
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#263A5C] text-[11px] font-semibold text-white">
+                <div className={`flex h-10 w-10 items-center justify-center rounded-full border text-[11px] font-semibold transition ${
+                  isLight
+                    ? "border-slate-300 bg-[#F1F3F6] text-slate-500 hover:bg-[#E8EBEF] hover:text-slate-700"
+                    : "border-white/[0.07] bg-[#263A5C] text-white hover:bg-[#30476C]"
+                }`}>
                   {initials}
                 </div>
 
