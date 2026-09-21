@@ -71,7 +71,7 @@ function App() {
                 }
               >
                 <Route
-                  path="/portal"
+                  path="/portal/*"
                   element={<MyPortalPage />}
                 />
               </Route>

@@ -5,6 +5,7 @@ import {
   Car,
   CheckCircle2,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   CircleHelp,
   FileText,
@@ -19,13 +20,17 @@ import {
   UserRound,
   X,
 } from "lucide-react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+
+import { cn } from "@/lib/utils";
 
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useTheme } from "@/context/ThemeContext";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+
 
 /* =========================================================
    TIPOS
@@ -110,9 +115,52 @@ const MyPortal = () => {
   const isPT = language === "pt";
   const isLight = theme === "light";
 
+  const toggleSidebar = () => {
+    setCollapsed((current) => !current);
+  };
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [documentViewer, setDocumentViewer] = useState<{
+    title: string;
+    content: string;
+  } | null>(null);
+
+  async function openDocument(
+    title: string,
+    ptFile: string,
+    enFile: string
+  ) {
+    try {
+      const fileName = isPT ? ptFile : enFile;
+      const response = await fetch(
+        `/NexHop%20-%20Documentos/${encodeURIComponent(fileName)}`
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to load document: ${response.status}`
+        );
+      }
+
+      const content = await response.text();
+
+      setDocumentViewer({
+        title,
+        content,
+      });
+    } catch (error) {
+      console.error("Erro ao carregar documento:", error);
+
+      toast.error(
+        isPT
+          ? "Não foi possível abrir o documento."
+          : "Could not open the document."
+      );
+    }
+  }
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
@@ -854,43 +902,76 @@ const MyPortal = () => {
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-[268px] flex-col border-r ${border} ${sidebarBg} transition-transform duration-200 lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex ${collapsed ? "w-[76px]" : "w-[268px]"} flex-col border-r ${border} ${sidebarBg} transition-[width,transform] duration-200 lg:translate-x-0 ${
           sidebarOpen
             ? "translate-x-0"
             : "-translate-x-full"
         }`}
       >
-        {/* LOGO */}
+        {/* ================================================= HEADER ================================================= */}
 
         <div
-          className={`flex h-[84px] items-center border-b ${border} px-7`}
+          className={cn(
+            "h-[72px] flex items-center border-b",
+            isLight
+              ? "border-slate-200"
+              : "border-white/[0.06]",
+            collapsed
+              ? "justify-center px-2"
+              : "justify-between px-5",
+          )}
         >
-          <div>
-            <div className="text-[29px] font-bold leading-none tracking-tight">
-              <span className="text-blue-400">
-                Nex
-              </span>
-              <span className={mainText}>
-                Hop
-              </span>
-            </div>
-
-            <div
-              className={`mt-1.5 text-xs ${mutedText}`}
+          {!collapsed && (
+            <Link
+              to="/dashboard"
+              className="flex items-center min-w-0"
             >
-              Employee Portal
-            </div>
-          </div>
+              <img
+                src={
+                  isLight
+                    ? "/nexhop/Light/NexHop_Icon_Light_64x64.png"
+                    : "/nexhop/Dark/NexHop_Icon_Dark_64x64.png"
+                }
+                alt="NexHop"
+                className="h-9 w-auto max-w-[155px] object-contain"
+              />
+            </Link>
+          )}
 
-          <button
-            type="button"
-            onClick={() =>
-              setSidebarOpen(false)
-            }
-            className={`ml-auto lg:hidden ${mutedText}`}
+          {collapsed && (
+            <Link
+              to="/dashboard"
+              className="flex items-center justify-center"
+            >
+              <img
+                src={
+                  isLight
+                    ? "/nexhop/Light/NexHop_Icon_Light_32x32.png"
+                    : "/nexhop/Dark/NexHop_Icon_Dark_32x32.png"
+                }
+                alt="NexHop"
+                className="h-9 w-9 rounded-lg object-contain"
+              />
+            </Link>
+          )}
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleSidebar}
+            className={cn(
+              "h-9 w-9 shrink-0",
+              isLight
+                ? "text-slate-500 hover:text-slate-900 hover:bg-slate-100"
+                : "text-white/60 hover:text-white hover:bg-white/[0.05]",
+            )}
           >
-            <X size={18} />
-          </button>
+            {collapsed ? (
+              <ChevronRight size={19} />
+            ) : (
+              <ChevronLeft size={19} />
+            )}
+          </Button>
         </div>
 
         {/* NAV + HELP */}
@@ -912,7 +993,7 @@ const MyPortal = () => {
                     navigate(item.path);
                     setSidebarOpen(false);
                   }}
-                  className={`group flex h-11 w-full items-center gap-3 rounded-xl px-4 text-left text-sm transition ${
+                  className={`group flex h-11 w-full items-center gap-3 rounded-xl px-4 text-left text-sm transition ${collapsed ? "justify-center px-0" : ""} ${
                     active
                       ? isLight
                         ? "bg-blue-50 text-blue-600"
@@ -923,7 +1004,8 @@ const MyPortal = () => {
                   }`}
                 >
                   <Icon
-                    size={19}
+                    size={22}
+                    strokeWidth={1.9}
                     className={
                       active
                         ? "text-blue-500"
@@ -933,9 +1015,9 @@ const MyPortal = () => {
                     }
                   />
 
-                  <span>{item.label}</span>
+                  {!collapsed && <span>{item.label}</span>}
 
-                  {active && (
+                  {active && !collapsed && (
                     <span className="ml-auto h-1.5 w-1.5 rounded-full bg-blue-400" />
                   )}
                 </button>
@@ -945,6 +1027,7 @@ const MyPortal = () => {
 
           {/* HELP */}
 
+          {!collapsed && (
           <div
             className={`mt-auto rounded-xl border ${border} ${
               isLight
@@ -988,36 +1071,39 @@ const MyPortal = () => {
               <ChevronRight size={13} />
             </button>
           </div>
+          )}
         </nav>
 
         {/* FOOTER */}
 
-        <div
-          className={`border-t ${border} px-7 py-5`}
-        >
+        {!collapsed && (
           <div
-            className={`text-xs ${mutedText}`}
+            className={`border-t ${border} px-7 py-5`}
           >
-            NexHop Employee
-          </div>
+            <div
+              className={`text-xs ${mutedText}`}
+            >
+              NexHop Employee
+            </div>
 
-          <div
-            className={`mt-1 text-[10px] ${
-              isLight
-                ? "text-slate-400"
-                : "text-white/20"
-            }`}
-          >
-            v1.0.0
+            <div
+              className={`mt-1 text-[10px] ${
+                isLight
+                  ? "text-slate-400"
+                  : "text-white/20"
+              }`}
+            >
+              v1.0.0
+            </div>
           </div>
-        </div>
+        )}
       </aside>
 
       {/* =====================================================
           MAIN
           ===================================================== */}
 
-      <div className="min-h-screen lg:pl-[268px]">
+      <div className={`min-h-screen transition-[padding] duration-200 ${collapsed ? "lg:pl-[76px]" : "lg:pl-[268px]"}`}>
         {/* HEADER */}
 
         <header
@@ -1881,6 +1967,15 @@ const MyPortal = () => {
                             : "Guides and manuals"
                         }
                         light={isLight}
+                        onClick={() =>
+                          openDocument(
+                            isPT
+                              ? "Guias e manuais"
+                              : "Guides and manuals",
+                            "01_Guias_e_Manuais_IT.md",
+                            "01_IT_Guides_and_Manuals_EN.md"
+                          )
+                        }
                       />
 
                       <UsefulLink
@@ -1889,35 +1984,37 @@ const MyPortal = () => {
                         }
                         label={
                           isPT
-                            ? "Políticas da empresa"
-                            : "Company policies"
+                            ? "Políticas de IT"
+                            : "IT policies"
                         }
                         light={isLight}
+                        onClick={() =>
+                          openDocument(
+                            isPT
+                              ? "Políticas de IT"
+                              : "IT policies",
+                            "02_Politicas_de_IT.md",
+                            "02_IT_Policies_EN.md"
+                          )
+                        }
                       />
 
-                      <button
-                        type="button"
+                      <UsefulLink
+                        icon={
+                          <Headphones size={17} />
+                        }
+                        label={
+                          isPT
+                            ? "Contactar IT"
+                            : "Contact IT"
+                        }
+                        light={isLight}
                         onClick={() =>
                           navigate(
                             "/portal/support"
                           )
                         }
-                        className={`flex w-full items-center gap-3 rounded-lg px-2.5 py-3 text-left text-xs ${
-                          isLight
-                            ? "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-                            : "text-white/60 hover:bg-white/[0.035] hover:text-white"
-                        }`}
-                      >
-                        <Headphones size={17} />
-
-                        <span className="flex-1">
-                          {isPT
-                            ? "Contactar IT"
-                            : "Contact IT"}
-                        </span>
-
-                        <ChevronRight size={14} />
-                      </button>
+                      />
 
                       <UsefulLink
                         icon={
@@ -1925,6 +2022,13 @@ const MyPortal = () => {
                         }
                         label="FAQ"
                         light={isLight}
+                        onClick={() =>
+                          openDocument(
+                            "FAQ",
+                            "03_FAQ_IT.md",
+                            "03_IT_FAQ_EN.md"
+                          )
+                        }
                       />
                     </div>
                   </PortalCard>
@@ -2493,6 +2597,15 @@ const MyPortal = () => {
             </PortalSectionHeader>
           )}
         </main>
+
+        {documentViewer && (
+          <DocumentViewerModal
+            title={documentViewer.title}
+            content={documentViewer.content}
+            light={isLight}
+            onClose={() => setDocumentViewer(null)}
+          />
+        )}
       </div>
     </div>
   );
@@ -2506,13 +2619,16 @@ const UsefulLink = ({
   icon,
   label,
   light,
+  onClick,
 }: {
   icon: React.ReactNode;
   label: string;
   light: boolean;
+  onClick: () => void;
 }) => (
   <button
     type="button"
+    onClick={onClick}
     className={`flex w-full items-center gap-3 rounded-lg px-2.5 py-3 text-left text-xs ${
       light
         ? "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
@@ -2524,6 +2640,222 @@ const UsefulLink = ({
     <ChevronRight size={14} />
   </button>
 );
+
+const DocumentViewerModal = ({
+  title,
+  content,
+  light,
+  onClose,
+}: {
+  title: string;
+  content: string;
+  light: boolean;
+  onClose: () => void;
+}) => {
+  const lines = content.split("\n");
+
+  return (
+    <div
+      className="fixed inset-0 z-[120] flex items-center justify-center bg-black/65 p-4 backdrop-blur-sm"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <section
+        className={`flex max-h-[88vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border ${
+          light
+            ? "border-slate-200 bg-[#F8FAFC]"
+            : "border-white/[0.06] bg-[#0D1730]"
+        } shadow-2xl`}
+      >
+        <header
+          className={`flex items-center justify-between border-b ${
+            light
+              ? "border-slate-200"
+              : "border-white/[0.06]"
+          } px-5 py-4`}
+        >
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-500">
+              NexHop Employee
+            </p>
+            <h2
+              className={`mt-1 text-lg font-semibold ${
+                light ? "text-slate-900" : "text-white"
+              }`}
+            >
+              {title}
+            </h2>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className={`flex h-9 w-9 items-center justify-center rounded-lg ${
+              light
+                ? "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+                : "text-white/50 hover:bg-white/[0.05] hover:text-white"
+            }`}
+            aria-label="Fechar"
+          >
+            <X size={18} />
+          </button>
+        </header>
+
+        <div className="overflow-y-auto px-6 py-6 sm:px-8">
+          <div className="space-y-3">
+            {lines.map((line, index) => {
+              const trimmed = line.trim();
+
+              if (!trimmed) {
+                return <div key={index} className="h-1" />;
+              }
+
+              if (trimmed === "---") {
+                return (
+                  <hr
+                    key={index}
+                    className={
+                      light
+                        ? "border-slate-200"
+                        : "border-white/[0.06]"
+                    }
+                  />
+                );
+              }
+
+              if (trimmed.startsWith("# ")) {
+                return (
+                  <h1
+                    key={index}
+                    className={`pt-2 text-2xl font-bold tracking-tight ${
+                      light ? "text-slate-900" : "text-white"
+                    }`}
+                  >
+                    {trimmed.slice(2)}
+                  </h1>
+                );
+              }
+
+              if (trimmed.startsWith("## ")) {
+                return (
+                  <h2
+                    key={index}
+                    className={`pt-3 text-lg font-semibold ${
+                      light ? "text-slate-900" : "text-white"
+                    }`}
+                  >
+                    {trimmed.slice(3)}
+                  </h2>
+                );
+              }
+
+              if (trimmed.startsWith("### ")) {
+                return (
+                  <h3
+                    key={index}
+                    className={`pt-2 text-sm font-semibold ${
+                      light ? "text-slate-800" : "text-white/90"
+                    }`}
+                  >
+                    {trimmed.slice(4)}
+                  </h3>
+                );
+              }
+
+              if (trimmed.startsWith("> ")) {
+                return (
+                  <div
+                    key={index}
+                    className={`rounded-lg border-l-2 border-blue-500 px-4 py-2 text-xs leading-5 ${
+                      light
+                        ? "bg-blue-50 text-slate-600"
+                        : "bg-blue-500/[0.05] text-white/55"
+                    }`}
+                  >
+                    {trimmed.slice(2)}
+                  </div>
+                );
+              }
+
+              if (trimmed.startsWith("- ")) {
+                return (
+                  <div
+                    key={index}
+                    className={`flex gap-3 pl-2 text-xs leading-6 ${
+                      light ? "text-slate-600" : "text-white/60"
+                    }`}
+                  >
+                    <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />
+                    <span>{formatInlineMarkdown(trimmed.slice(2))}</span>
+                  </div>
+                );
+              }
+
+              const numbered = trimmed.match(/^(\d+)\.\s+(.*)$/);
+
+              if (numbered) {
+                return (
+                  <div
+                    key={index}
+                    className={`flex gap-3 pl-2 text-xs leading-6 ${
+                      light ? "text-slate-600" : "text-white/60"
+                    }`}
+                  >
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-500/10 text-[9px] font-semibold text-blue-500">
+                      {numbered[1]}
+                    </span>
+                    <span>{formatInlineMarkdown(numbered[2])}</span>
+                  </div>
+                );
+              }
+
+              return (
+                <p
+                  key={index}
+                  className={`text-xs leading-6 ${
+                    light ? "text-slate-600" : "text-white/60"
+                  }`}
+                >
+                  {formatInlineMarkdown(trimmed)}
+                </p>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+};
+
+const formatInlineMarkdown = (value: string) => {
+  const parts = value.split(/(\*\*.*?\*\*|`.*?`)/g);
+
+  return parts.map((part, index) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return (
+        <strong key={index}>
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+
+    if (part.startsWith("`") && part.endsWith("`")) {
+      return (
+        <code
+          key={index}
+          className="rounded bg-blue-500/10 px-1.5 py-0.5 text-[10px] text-blue-400"
+        >
+          {part.slice(1, -1)}
+        </code>
+      );
+    }
+
+    return <span key={index}>{part}</span>;
+  });
+};
 
 const SupportFormPanel = ({
   isPT,
