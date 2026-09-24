@@ -1,4 +1,4 @@
-NexHop — IT Operations
+nexthop — IT Operations
 
 1. npm install
 2. npm run dev

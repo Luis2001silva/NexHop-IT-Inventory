@@ -136,7 +136,7 @@ const MyPortal = () => {
     try {
       const fileName = isPT ? ptFile : enFile;
       const response = await fetch(
-        `/NexHop%20-%20Documentos/${encodeURIComponent(fileName)}`
+        `/nexthop%20-%20Documentos/${encodeURIComponent(fileName)}`
       );
 
       if (!response.ok) {
@@ -929,10 +929,10 @@ const MyPortal = () => {
               <img
                 src={
                   isLight
-                    ? "/nexhop/Light/NexHop_Icon_Light_64x64.png"
-                    : "/nexhop/Dark/NexHop_Icon_Dark_64x64.png"
+                    ? "/nexthop/Light/nexthop_Icon_Light_64x64.png"
+                    : "/nexthop/Dark/nexthop_Icon_Dark_64x64.png"
                 }
-                alt="NexHop"
+                alt="nexthop"
                 className="h-9 w-auto max-w-[155px] object-contain"
               />
             </Link>
@@ -946,10 +946,10 @@ const MyPortal = () => {
               <img
                 src={
                   isLight
-                    ? "/nexhop/Light/NexHop_Icon_Light_32x32.png"
-                    : "/nexhop/Dark/NexHop_Icon_Dark_32x32.png"
+                    ? "/nexthop/Light/nexthop_Icon_Light_32x32.png"
+                    : "/nexthop/Dark/nexthop_Icon_Dark_32x32.png"
                 }
-                alt="NexHop"
+                alt="nexthop"
                 className="h-9 w-9 rounded-lg object-contain"
               />
             </Link>
@@ -1083,7 +1083,7 @@ const MyPortal = () => {
             <div
               className={`text-xs ${mutedText}`}
             >
-              NexHop Employee
+              nexthop Employee
             </div>
 
             <div
@@ -1856,7 +1856,7 @@ const MyPortal = () => {
 
                     <div className="relative px-6 py-7 sm:px-8">
                       <p className="text-xs font-medium text-blue-400">
-                        NexHop Employee
+                        nexthop Employee
                       </p>
 
                       <h2
@@ -2679,7 +2679,7 @@ const DocumentViewerModal = ({
         >
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-500">
-              NexHop Employee
+              nexthop Employee
             </p>
             <h2
               className={`mt-1 text-lg font-semibold ${
@@ -3841,7 +3841,7 @@ const PortalSectionHeader = ({
     <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-500">
-          NexHop Employee
+          nexthop Employee
         </p>
 
         <h1

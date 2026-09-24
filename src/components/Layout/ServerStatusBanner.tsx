@@ -24,7 +24,7 @@ const ServerStatusBanner = ({
     connecting: {
       icon: Loader2,
       title: 'A ligar ao servidor...',
-      description: 'A estabelecer ligação segura aos serviços NexHop.',
+      description: 'A estabelecer ligação segura aos serviços nexthop.',
       color: 'blue',
       iconClass: 'animate-spin',
     },
@@ -159,7 +159,7 @@ const ServerStatusBanner = ({
           />
 
           <span className="text-[10px] text-white/35">
-            NexHop Server
+            nexthop Server
           </span>
 
         </div>

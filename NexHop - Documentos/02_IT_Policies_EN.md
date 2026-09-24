@@ -1,6 +1,6 @@
 # IT Policies
 
-**NexHop Employee Portal**  
+**nexthop Employee Portal**  
 Version 1.0
 
 > This document presents general rules for the use of the company's technology resources. It should be adapted by the company to its internal policies, legal requirements and official procedures.

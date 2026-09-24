@@ -1011,7 +1011,7 @@ const ForgotPasswordPage = () => {
             <div className="text-center">
 
               <div className="text-[11px] font-semibold tracking-[0.22em] text-blue-300/70">
-                NEXHOP
+                nexthop
               </div>
 
               <div className="mt-1 text-[10px] tracking-[0.18em] text-blue-200/35">
@@ -2102,7 +2102,7 @@ const ForgotPasswordPage = () => {
               text-blue-200/30
             "
           >
-            © 2026 NexHop.{" "}
+            © 2026 nexthop.{" "}
             {isPT
               ? "Todos os direitos reservados."
               : "All rights reserved."}

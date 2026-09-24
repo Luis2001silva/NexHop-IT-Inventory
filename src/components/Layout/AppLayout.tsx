@@ -1237,7 +1237,7 @@ const AppLayout = () => {
               }`}
             >
               <span>
-                NexHop © 2026
+                nexthop © 2026
               </span>
 
               <span className="flex items-center gap-1.5 text-emerald-400">

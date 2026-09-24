@@ -52,7 +52,7 @@ const NotFound = () => {
 
           {/* FOOTER TEXT */}
           <p className="mt-10 text-[10px] uppercase tracking-[0.18em] text-white/20">
-            NexHop · NexHop
+            nexthop · nexthop
           </p>
 
         </div>

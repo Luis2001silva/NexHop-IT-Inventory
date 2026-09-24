@@ -606,8 +606,8 @@ const SettingsPage = () => {
 
                   <p className="mt-1 text-xs text-white/35">
                     {isPT
-                      ? 'Estado atual dos serviços NexHop.'
-                      : 'Current status of NexHop services.'}
+                      ? 'Estado atual dos serviços nexthop.'
+                      : 'Current status of nexthop services.'}
                   </p>
 
                 </div>
@@ -764,7 +764,7 @@ const SettingsPage = () => {
             </p>
 
             <p className="mt-1 text-xs font-medium text-white/60">
-              NexHop
+              nexthop
             </p>
 
           </div>

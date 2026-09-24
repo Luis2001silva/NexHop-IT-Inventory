@@ -31,7 +31,7 @@ const HomePage = () => {
 
           <div>
             <div className="font-semibold text-[15px] leading-none">
-              NexHop
+              nexthop
             </div>
 
             <div className="mt-1 text-[9px] tracking-[0.12em] text-white/35">
@@ -191,8 +191,8 @@ const HomePage = () => {
             <Database size={12} />
 
             {language === 'pt'
-              ? 'NexHop • IT Infrastructure Management'
-              : 'NexHop • IT Infrastructure Management'}
+              ? 'nexthop • IT Infrastructure Management'
+              : 'nexthop • IT Infrastructure Management'}
           </div>
 
         </div>

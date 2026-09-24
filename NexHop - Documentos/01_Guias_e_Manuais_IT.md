@@ -1,6 +1,6 @@
 # Guias e Manuais de IT
 
-**NexHop Employee Portal**  
+**nexthop Employee Portal**  
 Versão 1.0
 
 ## 1. Objetivo

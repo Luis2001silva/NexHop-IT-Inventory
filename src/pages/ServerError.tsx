@@ -82,7 +82,7 @@ const ServerError = () => {
 
           {/* FOOTER */}
           <p className="mt-8 text-[10px] uppercase tracking-[0.18em] text-white/20">
-            NexHop · NexHop
+            nexthop · nexthop
           </p>
 
         </div>

@@ -1,6 +1,6 @@
 # IT Guides and Manuals
 
-**NexHop Employee Portal**  
+**nexthop Employee Portal**  
 Version 1.0
 
 ## 1. Purpose

@@ -1,6 +1,6 @@
 # Políticas de IT
 
-**NexHop Employee Portal**  
+**nexthop Employee Portal**  
 Versão 1.0
 
 > Este documento apresenta regras gerais de utilização dos recursos tecnológicos da empresa. Deve ser ajustado pela empresa às suas políticas internas, requisitos legais e procedimentos oficiais.

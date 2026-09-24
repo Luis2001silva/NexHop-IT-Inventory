@@ -10,7 +10,7 @@ export interface TranslationDictionary {
 export const translations: TranslationDictionary = {
   "pt": {
     // General
-    "appTitle": "NexHop — Operações de TI",
+    "appTitle": "nexthop — Operações de TI",
     "darkMode": "Modo Escuro",
     "lightMode": "Modo Claro",
     "loading": "Carregando...",
@@ -105,7 +105,7 @@ export const translations: TranslationDictionary = {
   },
   "en": {
     // General
-    "appTitle": "NexHop — IT Operations",
+    "appTitle": "nexthop — IT Operations",
     "darkMode": "Dark Mode",
     "lightMode": "Light Mode",
     "loading": "Loading...",
@@ -182,7 +182,7 @@ export const translations: TranslationDictionary = {
     "viewer": "Viewer",
     
     // Messages
-    "welcomeMessage": "Welcome to the NexHop — IT Operations System",
+    "welcomeMessage": "Welcome to the nexthop — IT Operations System",
     "noEquipmentFound": "No equipment found",
     "noInvoicesFound": "No invoices found",
     "equipmentSaved": "Equipment saved successfully",

@@ -325,7 +325,7 @@ const LoginForm = () => {
           text-blue-300/45
         "
       >
-        NEXHOP.PT
+        nexthop.PT
 
         <div className="mt-4 ml-auto h-px w-8 bg-blue-400/70" />
       </div>
@@ -459,7 +459,7 @@ const LoginForm = () => {
                   text-white
                 "
               >
-                NexHop
+                nexthop
               </div>
 
               <div
@@ -912,7 +912,7 @@ const LoginForm = () => {
               text-blue-200/35
             "
           >
-            © 2026 NexHop.{' '}
+            © 2026 nexthop.{' '}
             {isPT
               ? 'Todos os direitos reservados.'
               : 'All rights reserved.'}

@@ -107,7 +107,7 @@ const CreateAccountPage = () => {
           </div>
 
           <div>
-            <div className="text-[15px] font-semibold leading-none">NexHop</div>
+            <div className="text-[15px] font-semibold leading-none">nexthop</div>
 
             <div
               className="mt-1 text-[9px] tracking-[0.12em] text-white/35"
@@ -137,8 +137,8 @@ const CreateAccountPage = () => {
               className="mt-2 text-xs leading-5 text-white/40"
             >
               {isPT
-                ? "Crie a sua conta para começar a utilizar o NexHop."
-                : "Create your account to start using NexHop."}
+                ? "Crie a sua conta para começar a utilizar o nexthop."
+                : "Create your account to start using nexthop."}
             </p>
           </div>
 

@@ -1,6 +1,6 @@
 # FAQ — Perguntas Frequentes de IT
 
-**NexHop Employee Portal**  
+**nexthop Employee Portal**  
 Versão 1.0
 
 ## Como posso pedir ajuda à equipa de IT?
