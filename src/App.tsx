@@ -9,7 +9,7 @@ import AppLayout from "./components/Layout/AppLayout";
 
 import LoginPage from "./pages/LoginPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
-import CreateAccountPage from "./pages/CreateAccountPage";
+import ForbiddenPage from "./pages/Forbidden";
 
 import DashboardPage from "./pages/Dashboard";
 import EquipmentPage from "./pages/EquipmentPage";
@@ -57,8 +57,8 @@ function App() {
               />
 
               <Route
-                path="/create-account"
-                element={<CreateAccountPage />}
+                path="/403"
+                element={<ForbiddenPage />}
               />
 
               {/* ========================================
@@ -89,6 +89,7 @@ function App() {
                 }
               >
                 <Route element={<AppLayout />}>
+
                   {/* ====================================
                       PRINCIPAL
                   ==================================== */}
@@ -100,6 +101,16 @@ function App() {
 
                   <Route
                     path="/equipment"
+                    element={<EquipmentPage />}
+                  />
+
+                  <Route
+                    path="/equipment/new"
+                    element={<EquipmentPage />}
+                  />
+
+                  <Route
+                    path="/equipment/:id"
                     element={<EquipmentPage />}
                   />
 
@@ -119,6 +130,16 @@ function App() {
 
                   <Route
                     path="/invoices"
+                    element={<InvoicesPage />}
+                  />
+
+                  <Route
+                    path="/invoices/new"
+                    element={<InvoicesPage />}
+                  />
+
+                  <Route
+                    path="/invoices/:id"
                     element={<InvoicesPage />}
                   />
 
@@ -194,6 +215,7 @@ function App() {
                     path="/support"
                     element={<SupportPage />}
                   />
+
                 </Route>
               </Route>
 
@@ -205,6 +227,7 @@ function App() {
                 path="*"
                 element={<Navigate to="/login" replace />}
               />
+
             </Routes>
           </ThemeProvider>
         </LanguageProvider>
