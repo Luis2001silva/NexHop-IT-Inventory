@@ -509,8 +509,8 @@ export const Sidebar = ({
               <img
                 src={
                   isLight
-                    ? "/nexthop/Light/nexthop_Icon_Light_64x64.png"
-                    : "/nexthop/Dark/nexthop_Icon_Dark_64x64.png"
+                    ? "/Nexthop/Light/NextHop_Icon_Light_64x64.png"
+                    : "/Nexthop/Dark/NextHop_Icon_Dark_64x64.png"
                 }
                 alt="nexthop"
                 className="h-9 w-auto max-w-[155px] object-contain"
