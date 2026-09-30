@@ -26,6 +26,7 @@ import {
   ChevronRight,
   ChevronLeft,
   KeyRound,
+  Clock3,
 } from "lucide-react";
 
 /* =========================================================
@@ -229,6 +230,16 @@ export const Sidebar = ({
                 label: language === "pt" ? "Utilizadores" : "Users",
                 icon: <Users size={18} />,
                 /*  updating: true,    */
+              },
+            ]
+          : []),
+
+        ...(isAdmin
+          ? [
+              {
+                path: "/activity-log",
+                label: language === "pt" ? "Registo de atividade" : "Activity log",
+                icon: <Clock3 size={18} />,
               },
             ]
           : []),

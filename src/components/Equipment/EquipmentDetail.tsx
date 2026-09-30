@@ -95,7 +95,7 @@ const EquipmentDetail = () => {
   // editar ou eliminar equipamentos.
   // =======================================================
 
-  const { role, loading: roleLoading } = useUserRole();
+  const { role } = useUserRole();
 
   const isAdmin = role === 'admin';
 
@@ -424,25 +424,6 @@ const EquipmentDetail = () => {
       loadInvoices();
     }
   }, [id]);
-
-  /*
-   * ---------------------------------------------------------
-   * ROLE LOADING
-   *
-   * Esperamos pelo carregamento do role antes de apresentar
-   * as ações administrativas.
-   * ---------------------------------------------------------
-   */
-
-  if (roleLoading) {
-    return (
-      <div className="flex min-h-[400px] items-center justify-center bg-[#080D1F] text-white">
-        <div className="text-sm text-white/40">
-          {isPT ? 'A carregar...' : 'Loading...'}
-        </div>
-      </div>
-    );
-  }
 
   /*
    * ---------------------------------------------------------

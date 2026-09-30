@@ -13,6 +13,7 @@ import ForbiddenPage from "./pages/Forbidden";
 
 import DashboardPage from "./pages/Dashboard";
 import EquipmentPage from "./pages/EquipmentPage";
+import EquipmentDetail from "./components/Equipment/EquipmentDetail";
 import UsersPage from "./pages/UsersPage";
 import DepartmentsPage from "./pages/HierarchyPage";
 import InvoicesPage from "./pages/InvoicePage";
@@ -29,6 +30,7 @@ import SupportPage from "./pages/SupportPage";
 
 import MyPortalPage from "./pages/MyPortal";
 import PasswordResetRequestsPage from "./pages/PasswordResetRequestsPage";
+import ActivityLogPage from "./pages/ActivityLogPage";
 
 function App() {
   return (
@@ -37,197 +39,51 @@ function App() {
         <LanguageProvider>
           <ThemeProvider>
             <Routes>
-              {/* ========================================
-                  ROTAS PÚBLICAS
-              ======================================== */}
+              <Route path="/" element={<Navigate to="/login" replace />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/403" element={<ForbiddenPage />} />
 
-              <Route
-                path="/"
-                element={<Navigate to="/login" replace />}
-              />
-
-              <Route
-                path="/login"
-                element={<LoginPage />}
-              />
-
-              <Route
-                path="/forgot-password"
-                element={<ForgotPasswordPage />}
-              />
-
-              <Route
-                path="/403"
-                element={<ForbiddenPage />}
-              />
-
-              {/* ========================================
-                  PORTAL DO UTILIZADOR
-              ======================================== */}
-
-              <Route
-                element={
-                  <ProtectedRoute allowedRoles={["user"]} />
-                }
-              >
-                <Route
-                  path="/portal/*"
-                  element={<MyPortalPage />}
-                />
+              <Route element={<ProtectedRoute allowedRoles={["user"]} />}>
+                <Route path="/portal/*" element={<MyPortalPage />} />
               </Route>
 
-              {/* ========================================
-                  ÁREA IT
-                  ADMIN + VIEWER
-              ======================================== */}
-
-              <Route
-                element={
-                  <ProtectedRoute
-                    allowedRoles={["admin", "viewer"]}
-                  />
-                }
-              >
+              <Route element={<ProtectedRoute allowedRoles={["admin", "viewer"]} />}>
                 <Route element={<AppLayout />}>
+                  <Route path="/dashboard" element={<DashboardPage />} />
 
-                  {/* ====================================
-                      PRINCIPAL
-                  ==================================== */}
+                  <Route path="/equipment" element={<EquipmentPage />} />
+                  <Route path="/equipment/new" element={<EquipmentDetail />} />
+                  <Route path="/equipment/:id" element={<EquipmentDetail />} />
 
-                  <Route
-                    path="/dashboard"
-                    element={<DashboardPage />}
-                  />
+                  <Route path="/users" element={<UsersPage />} />
+                  <Route path="/departments" element={<DepartmentsPage />} />
 
-                  <Route
-                    path="/equipment"
-                    element={<EquipmentPage />}
-                  />
+                  <Route path="/activity-log" element={<ActivityLogPage />} />
 
-                  <Route
-                    path="/equipment/new"
-                    element={<EquipmentPage />}
-                  />
+                  <Route path="/invoices" element={<InvoicesPage />} />
+                  <Route path="/invoices/new" element={<InvoicesPage />} />
+                  <Route path="/invoices/:id" element={<InvoicesPage />} />
 
-                  <Route
-                    path="/equipment/:id"
-                    element={<EquipmentPage />}
-                  />
+                  <Route path="/warranties" element={<WarrantiesPage />} />
+                  <Route path="/reservations" element={<ReservationsPage />} />
+                  <Route path="/documents" element={<DocumentsPage />} />
+                  <Route path="/hierarchy" element={<HierarchyPage />} />
+                  <Route path="/alerts" element={<AlertsPage />} />
+                  <Route path="/reports" element={<ReportsPage />} />
 
-                  {/* ====================================
-                      GESTÃO
-                  ==================================== */}
-
-                  <Route
-                    path="/users"
-                    element={<UsersPage />}
-                  />
-
-                  <Route
-                    path="/departments"
-                    element={<DepartmentsPage />}
-                  />
-
-                  <Route
-                    path="/invoices"
-                    element={<InvoicesPage />}
-                  />
-
-                  <Route
-                    path="/invoices/new"
-                    element={<InvoicesPage />}
-                  />
-
-                  <Route
-                    path="/invoices/:id"
-                    element={<InvoicesPage />}
-                  />
-
-                  <Route
-                    path="/warranties"
-                    element={<WarrantiesPage />}
-                  />
-
-                  <Route
-                    path="/reservations"
-                    element={<ReservationsPage />}
-                  />
-
-                  <Route
-                    path="/documents"
-                    element={<DocumentsPage />}
-                  />
-
-                  <Route
-                    path="/hierarchy"
-                    element={<HierarchyPage />}
-                  />
-
-                  {/* ====================================
-                      MONITORIZAÇÃO
-                  ==================================== */}
-
-                  <Route
-                    path="/alerts"
-                    element={<AlertsPage />}
-                  />
-
-                  <Route
-                    path="/reports"
-                    element={<ReportsPage />}
-                  />
-
-                  {/* ====================================
-                      ADMIN ONLY
-                  ==================================== */}
-
-                  <Route
-                    element={
-                      <ProtectedRoute allowedRoles={["admin"]} />
-                    }
-                  >
-                    <Route
-                      path="/logs"
-                      element={<LogsPage />}
-                    />
-
-                    <Route
-                      path="/password-reset-requests"
-                      element={<PasswordResetRequestsPage />}
-                    />
+                  <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
+                    <Route path="/logs" element={<LogsPage />} />
+                    <Route path="/password-reset-requests" element={<PasswordResetRequestsPage />} />
                   </Route>
 
-                  {/* ====================================
-                      SISTEMA
-                  ==================================== */}
-
-                  <Route
-                    path="/settings"
-                    element={<SettingsPage />}
-                  />
-
-                  <Route
-                    path="/profile"
-                    element={<ProfilePage />}
-                  />
-
-                  <Route
-                    path="/support"
-                    element={<SupportPage />}
-                  />
-
+                  <Route path="/settings" element={<SettingsPage />} />
+                  <Route path="/profile" element={<ProfilePage />} />
+                  <Route path="/support" element={<SupportPage />} />
                 </Route>
               </Route>
 
-              {/* ========================================
-                  FALLBACK
-              ======================================== */}
-
-              <Route
-                path="*"
-                element={<Navigate to="/login" replace />}
-              />
-
+              <Route path="*" element={<Navigate to="/login" replace />} />
             </Routes>
           </ThemeProvider>
         </LanguageProvider>
