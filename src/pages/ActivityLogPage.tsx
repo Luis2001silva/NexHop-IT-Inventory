@@ -1,4 +1,4 @@
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowLeft, Clock3, Copy, Play, Plus, RefreshCw, Square, Trash2, Pencil, X,
@@ -86,6 +86,8 @@ export default function ActivityLogPage() {
   const [manualEnd, setManualEnd] = useState("");
   const [userFilter, setUserFilter] = useState("all");
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ActivityRow | null>(null);
+  const manualSectionRef = useRef<HTMLElement | null>(null);
 
   const timerStorageKey = user?.id ? `${TIMER_PREFIX}${user.id}` : null;
 
@@ -262,7 +264,7 @@ export default function ActivityLogPage() {
     setManualDuration(String(entry.duration_minutes || 15));
     setManualStart(toDateTimeLocal(entry.started_at));
     setManualEnd(toDateTimeLocal(entry.ended_at));
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.setTimeout(() => manualSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
   };
 
   const cancelEdit = () => {
@@ -276,12 +278,26 @@ export default function ActivityLogPage() {
     setManualEnd("");
   };
 
-  const deleteEntry = async (entry: ActivityRow) => {
+  const deleteEntry = (entry: ActivityRow) => {
     if (!isAdmin && entry.user_id !== user?.id) return;
-    if (!window.confirm(isPT ? "Eliminar este registo de atividade?" : "Delete this activity entry?")) return;
-    const { error } = await db.from("activity_entries").delete().eq("id", entry.id);
-    if (error) toast.error(error.message);
-    else { toast.success(isPT ? "Registo eliminado." : "Entry deleted."); await loadEntries(); }
+    setDeleteTarget(entry);
+  };
+
+  const confirmDeleteEntry = async () => {
+    if (!deleteTarget) return;
+    setSaving(true);
+    try {
+      const { error } = await db.from("activity_entries").delete().eq("id", deleteTarget.id);
+      if (error) throw error;
+      toast.success(isPT ? "Registo eliminado." : "Entry deleted.");
+      setDeleteTarget(null);
+      if (editingEntryId === deleteTarget.id) cancelEdit();
+      await loadEntries();
+    } catch (error: any) {
+      toast.error(error.message || (isPT ? "Não foi possível eliminar o registo." : "Could not delete entry."));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const totalMinutes = useMemo(() => entries.reduce((total, entry) => total + (entry.duration_minutes || 0), 0), [entries]);
@@ -337,7 +353,7 @@ export default function ActivityLogPage() {
             </>}
           </section>
 
-          <section className={card}>
+          <section ref={manualSectionRef} className={card}>
             <div className="mb-4 flex items-center gap-2"><Plus className="text-emerald-300" size={19} /><h2 className="font-semibold">{editingEntryId ? (isPT ? "Editar registo" : "Edit entry") : (isPT ? "Registo manual" : "Manual entry")}</h2></div>
             <form onSubmit={saveManual} className="space-y-3">
               <div className="grid gap-3 sm:grid-cols-2"><div><label className={label}>{isPT ? "Atividade *" : "Activity *"}</label><input className={field} value={manualTitle} onChange={(e) => setManualTitle(e.target.value)} placeholder={isPT ? "Ex.: Apoio na instalação do Teams" : "e.g. Teams installation support"} required /></div><div><label className={label}>{isPT ? "Categoria" : "Category"}</label><select className={field} value={manualCategory} onChange={(e) => setManualCategory(e.target.value)}>{categories.map((item) => <option key={item.value} value={item.value}>{isPT ? item.pt : item.en}</option>)}</select></div></div>
@@ -356,6 +372,28 @@ export default function ActivityLogPage() {
         </section>
         <p className="text-xs leading-5 text-white/35">{isPT ? "Privacidade: cada utilizador só consulta os seus próprios registos. Os administradores podem consultar todos. A proteção é aplicada também na base de dados (RLS)." : "Privacy: users can only view their own entries. Administrators can view all entries. Database Row Level Security enforces access."}</p>
       </div>
+
+      {deleteTarget && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !saving) setDeleteTarget(null); }}>
+          <div role="dialog" aria-modal="true" aria-labelledby="delete-activity-title" className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0D1730] p-6 shadow-2xl shadow-black/40">
+            <div className="mb-4 flex items-start gap-3">
+              <span className="rounded-xl bg-red-500/15 p-3 text-red-300"><Trash2 size={21} /></span>
+              <div>
+                <h2 id="delete-activity-title" className="text-lg font-semibold">{isPT ? "Eliminar atividade" : "Delete activity"}</h2>
+                <p className="mt-1 text-sm text-white/60">{isPT ? "Tens a certeza de que queres eliminar este registo? Esta ação não pode ser anulada." : "Are you sure you want to delete this entry? This action cannot be undone."}</p>
+              </div>
+            </div>
+            <div className="mb-5 rounded-lg border border-white/8 bg-white/[0.03] p-3">
+              <p className="font-medium">{deleteTarget.title}</p>
+              <p className="mt-1 text-xs text-white/45">{formatDuration(deleteTarget.duration_minutes)} · {deleteTarget.work_date}</p>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button type="button" disabled={saving} onClick={() => setDeleteTarget(null)} className="rounded-lg border border-white/10 px-4 py-2.5 text-sm font-medium text-white/75 hover:bg-white/5 disabled:opacity-50">{isPT ? "Cancelar" : "Cancel"}</button>
+              <button type="button" disabled={saving} onClick={() => void confirmDeleteEntry()} className="inline-flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-400 disabled:opacity-50">{saving ? <RefreshCw size={15} className="animate-spin" /> : <Trash2 size={15} />}{isPT ? "Eliminar registo" : "Delete entry"}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

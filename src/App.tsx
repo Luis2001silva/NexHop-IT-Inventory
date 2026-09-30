@@ -1,3 +1,4 @@
+
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import { AuthProvider } from "./context/AuthContext";
@@ -6,6 +7,7 @@ import { ThemeProvider } from "./context/ThemeContext";
 
 import { ProtectedRoute } from "./components/Auth/ProtectedRoute";
 import AppLayout from "./components/Layout/AppLayout";
+import EquipmentDetail from "./components/Equipment/EquipmentDetail";
 
 import LoginPage from "./pages/LoginPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
@@ -13,7 +15,6 @@ import ForbiddenPage from "./pages/Forbidden";
 
 import DashboardPage from "./pages/Dashboard";
 import EquipmentPage from "./pages/EquipmentPage";
-import EquipmentDetail from "./components/Equipment/EquipmentDetail";
 import UsersPage from "./pages/UsersPage";
 import DepartmentsPage from "./pages/HierarchyPage";
 import InvoicesPage from "./pages/InvoicePage";
@@ -39,27 +40,48 @@ function App() {
         <LanguageProvider>
           <ThemeProvider>
             <Routes>
-              <Route path="/" element={<Navigate to="/login" replace />} />
+              <Route
+                path="/"
+                element={<Navigate to="/login" replace />}
+              />
               <Route path="/login" element={<LoginPage />} />
-              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route
+                path="/forgot-password"
+                element={<ForgotPasswordPage />}
+              />
               <Route path="/403" element={<ForbiddenPage />} />
 
-              <Route element={<ProtectedRoute allowedRoles={["user"]} />}>
+              <Route
+                element={<ProtectedRoute allowedRoles={["user"]} />}
+              >
                 <Route path="/portal/*" element={<MyPortalPage />} />
               </Route>
 
-              <Route element={<ProtectedRoute allowedRoles={["admin", "viewer"]} />}>
+              <Route
+                element={
+                  <ProtectedRoute allowedRoles={["admin", "viewer"]} />
+                }
+              >
                 <Route element={<AppLayout />}>
                   <Route path="/dashboard" element={<DashboardPage />} />
 
                   <Route path="/equipment" element={<EquipmentPage />} />
-                  <Route path="/equipment/new" element={<EquipmentDetail />} />
-                  <Route path="/equipment/:id" element={<EquipmentDetail />} />
+                  <Route
+                    path="/equipment/new"
+                    element={<EquipmentDetail />}
+                  />
+                  <Route
+                    path="/equipment/:id"
+                    element={<EquipmentDetail />}
+                  />
 
                   <Route path="/users" element={<UsersPage />} />
                   <Route path="/departments" element={<DepartmentsPage />} />
 
-                  <Route path="/activity-log" element={<ActivityLogPage />} />
+                  <Route
+                    path="/activity-log"
+                    element={<ActivityLogPage />}
+                  />
 
                   <Route path="/invoices" element={<InvoicesPage />} />
                   <Route path="/invoices/new" element={<InvoicesPage />} />
@@ -72,9 +94,14 @@ function App() {
                   <Route path="/alerts" element={<AlertsPage />} />
                   <Route path="/reports" element={<ReportsPage />} />
 
-                  <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
+                  <Route
+                    element={<ProtectedRoute allowedRoles={["admin"]} />}
+                  >
                     <Route path="/logs" element={<LogsPage />} />
-                    <Route path="/password-reset-requests" element={<PasswordResetRequestsPage />} />
+                    <Route
+                      path="/password-reset-requests"
+                      element={<PasswordResetRequestsPage />}
+                    />
                   </Route>
 
                   <Route path="/settings" element={<SettingsPage />} />
@@ -83,7 +110,10 @@ function App() {
                 </Route>
               </Route>
 
-              <Route path="*" element={<Navigate to="/login" replace />} />
+              <Route
+                path="*"
+                element={<Navigate to="/login" replace />}
+              />
             </Routes>
           </ThemeProvider>
         </LanguageProvider>

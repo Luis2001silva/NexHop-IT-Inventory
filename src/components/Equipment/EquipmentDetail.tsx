@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 
 import { useLanguage } from '@/context/LanguageContext';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -85,6 +85,7 @@ interface Equipment {
 const EquipmentDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const { language } = useLanguage();
   // =======================================================
@@ -99,14 +100,40 @@ const EquipmentDetail = () => {
 
   const isAdmin = role === 'admin';
 
-  const isNewEquipment = id === 'new';
+  // /equipment/new is a literal route, so useParams() does not return id='new'.
+  // Detect the pathname as well to initialise the creation form correctly.
+  const isNewEquipment = id === 'new' || location.pathname.replace(/\/+$/, '') === '/equipment/new';
   const isPT = language === 'pt';
 
-  const [equipment, setEquipment] = useState<Equipment | null>(null);
-  const [originalEquipment, setOriginalEquipment] =
-    useState<Equipment | null>(null);
+  const createEmptyEquipment = (): Equipment => ({
+    name: '',
+    model: '',
+    serial_number: '',
+    description: '',
+    brand_id: null,
+    equipment_type_id: null,
+    assigned_user_id: null,
+    department_id: null,
+    location_id: null,
+    supplier_id: null,
+    invoice_id: null,
+    invoice_number: '',
+    purchase_date: null,
+    warranty_end: null,
+    status: 'active',
+    condition: 'good',
+    notes: '',
+  });
 
-  const [loading, setLoading] = useState(true);
+  const [equipment, setEquipment] = useState<Equipment | null>(
+    isNewEquipment ? createEmptyEquipment() : null
+  );
+  const [originalEquipment, setOriginalEquipment] =
+    useState<Equipment | null>(
+      isNewEquipment ? createEmptyEquipment() : null
+    );
+
+  const [loading, setLoading] = useState(!isNewEquipment);
   const [saving, setSaving] = useState(false);
 
   /*
@@ -391,39 +418,43 @@ const EquipmentDetail = () => {
    */
 
   useEffect(() => {
-    loadLists();
+    let cancelled = false;
 
     if (isNewEquipment) {
-      const newEquipment: Equipment = {
-        name: '',
-        model: '',
-        serial_number: '',
-        description: '',
-        brand_id: null,
-        equipment_type_id: null,
-        assigned_user_id: null,
-        department_id: null,
-        location_id: null,
-        supplier_id: null,
-        invoice_id: null,
-        invoice_number: '',
-        purchase_date: null,
-        warranty_end: null,
-        status: 'active',
-        condition: 'good',
-        notes: '',
-      };
-
-      setEquipment(newEquipment);
-      setOriginalEquipment(newEquipment);
+      const emptyEquipment = createEmptyEquipment();
+      setEquipment(emptyEquipment);
+      setOriginalEquipment(emptyEquipment);
+      setInvoiceNumber('');
       setIsEditing(true);
       setLoading(false);
+
+      // The form does not depend on these lists to render.
+      // Load them in the background.
+      loadLists();
     } else if (id) {
       setIsEditing(false);
-      loadEquipment();
-      loadInvoices();
+
+      const loadExisting = async () => {
+        await Promise.all([
+          loadLists(),
+          loadEquipment(),
+          loadInvoices(),
+        ]);
+
+        if (!cancelled) {
+          setLoading(false);
+        }
+      };
+
+      loadExisting();
+    } else {
+      setLoading(false);
     }
-  }, [id]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id, isNewEquipment]);
 
   /*
    * ---------------------------------------------------------
@@ -483,6 +514,7 @@ const EquipmentDetail = () => {
       .single();
 
     if (error) {
+      setLoading(false);
       toast.error(error.message);
       navigate('/equipment');
       return;
@@ -837,7 +869,7 @@ const EquipmentDetail = () => {
    * ---------------------------------------------------------
    */
 
-  if (loading) {
+  if (loading && !isNewEquipment) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
         <div className="text-sm text-white/50">
