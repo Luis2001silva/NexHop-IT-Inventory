@@ -520,8 +520,8 @@ export const Sidebar = ({
               <img
                 src={
                   isLight
-                    ? "/Nexthop/Light/NextHop_Icon_Light_64x64.png"
-                    : "/Nexthop/Dark/NextHop_Icon_Dark_64x64.png"
+                    ? "/Logos/Light/NextHop_Icon_Light_64x64.png"
+                    : "/Logos/Dark/NextHop_Icon_Dark_64x64.png"
                 }
                 alt="nexthop"
                 className="h-9 w-auto max-w-[155px] object-contain"
@@ -537,8 +537,8 @@ export const Sidebar = ({
               <img
                 src={
                   isLight
-                    ? "/nexthop/Light/nexthop_Icon_Light_32x32.png"
-                    : "/nexthop/Dark/nexthop_Icon_Dark_32x32.png"
+                    ? "/Logos/Light/nexthop_Icon_Light_32x32.png"
+                    : "/Logos/Dark/nexthop_Icon_Dark_32x32.png"
                 }
                 alt="nexthop"
                 className="h-9 w-9 rounded-lg object-contain"
