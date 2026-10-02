@@ -33,6 +33,7 @@ import MyPortalPage from "./pages/MyPortal";
 import PasswordResetRequestsPage from "./pages/PasswordResetRequestsPage";
 import ActivityLogPage from "./pages/ActivityLogPage";
 
+
 function App() {
   return (
     <BrowserRouter>
